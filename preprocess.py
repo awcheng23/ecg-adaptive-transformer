@@ -24,7 +24,7 @@ def main():
 
     train_dist, val_dist, test_dist = split_train_val_test(segment_IDs)
     segments_train, segment_IDs_train = get_sampled_data(
-        segments, segment_IDs, train_dist, num_samples=15577, augment=True
+        segments, segment_IDs, train_dist, num_samples=8680, augment=True
     )
     segments_val, segment_IDs_val = get_sampled_data(
         segments, segment_IDs, val_dist, num_samples=1302
