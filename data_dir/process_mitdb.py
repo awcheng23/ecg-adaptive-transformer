@@ -1,8 +1,8 @@
-from typing import Optional, Tuple, List, Dict
 import numpy as np
 import wfdb
 import scipy as spy
 from os.path import join as join_path
+from typing import Optional, Tuple, List, Dict
 
 
 def get_record(ID: int, dt_path: str = "data/mitdb/"):
