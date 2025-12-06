@@ -250,10 +250,10 @@
 				<tr>
 					<td colspan=4>
 						<span
-							style="font-size: 32px; font-family: 'Comic Sans MS', Courier, monospace; /* Adds fallbacks */">Adaptive-Depth
+							style="font-size: 32px; font-family: 'Helvetica', Courier, monospace; /* Adds fallbacks */">Adaptive-Depth
 							Transformers for Efficient and Robust ECG Classification</span>
 					</td>
-				</tr>
+				</tr>`
 				<tr>
 					<td align=left>
 						<span style="font-size:17px"><a href="https://github.com/awcheng23">Alice Cheng</a></span>
@@ -285,14 +285,17 @@
 		</div>
 		<div class="main-content-block">
 			<!--You can embed an image like this:-->
-			<img src="./images/your_image_here.png" width=512px />
+			<img src="./images/morphology_101_140.png" width=512px />
 		</div>
 		<div class="margin-right-block">
-			Caption for the image.
+			<b>Figure 1.</b> Example ECG waveform illustrating key morphological components, including P waves, QRS
+			complexes,
+			T waves, PR and ST segments, and the RR interval between successive beats, which together define the
+			temporal structure that arrhythmia classifiers must learn to interpret.
 		</div>
 	</div>
 
-	<div class="content-margin-container" id="intro">
+	<!-- <div class="content-margin-container" id="intro">
 		<div class="margin-left-block">
 		</div>
 
@@ -300,103 +303,167 @@
 			<h1>Introduction</h1>
 
 			<p>
-				Electrocardiogram (ECG) classification is one of the most widely used tools for detecting cardiac
-				abnormalities, yet modern machine learning systems approach it with a “one-size-fits-all” computational
-				pipeline. Whether an ECG segment is simple (e.g., clean sinus rhythm) or highly irregular (e.g.,
-				ventricular ectopy), deep learning models generally allocate the <strong>same fixed amount of
-					computation</strong>
-				to every sample. This creates an inefficiency: many ECG windows are easy to classify and likely require
-				only minimal processing, while difficult or noisy segments may benefit from deeper analysis. Despite
-				advances in transformer-based architectures in healthcare, little work has explored how to dynamically
-				allocate computation across ECG inputs in a way that preserves accuracy while reducing cost.
+				Electrocardiograms (ECGs) are a cornerstone of cardiac diagnostics, widely used to detect arrhythmias
+				such as atrial fibrillation, premature ventricular contractions, and ST-segment deviations. In recent
+				years, deep learning models—particularly convolutional and transformer architectures—have demonstrated
+				high accuracy in ECG classification. However, most of these models process all input segments uniformly,
+				applying the same computational depth regardless of signal complexity. As a result, clean or simple ECG
+				segments are often over-processed, while complex or noisy segments may not receive sufficient analysis.
+				This “one-size-fits-all” approach is inefficient, particularly in contexts where energy and latency are
+				constrained, such as wearable monitors or bedside diagnostic devices.
+			</p>
+
+			<img src="./images/transformer_intro.jpg" width=600px />
+
+			<p>
+				Adaptive computation presents a promising alternative. By allowing models to dynamically decide how much
+				processing to allocate to each input, adaptive-depth architectures can potentially reduce unnecessary
+				computation while maintaining accuracy. In natural language processing and computer vision, mechanisms
+				such as Adaptive Computation Time (ACT) and adaptive halting in transformers have demonstrated that
+				models can allocate more computation to difficult or ambiguous inputs, achieving efficiency gains and
+				providing interpretable insights into input complexity.
 			</p>
 
 			<p>
-				This observation motivates our central question:
-				<strong>Can adaptive-depth transformers learn to allocate more computation to “hard” ECG windows and
-					halt
-					early on “easy” ones—improving efficiency while maintaining diagnostic performance?</strong>
+				Despite these advances, adaptive computation remains largely unexplored in the context of biomedical
+				signals. ECGs are inherently variable: rhythms differ in morphology, duration, and susceptibility to
+				noise. An adaptive model could, in principle, allocate fewer layers to simple sinus rhythms while using
+				deeper processing for irregular or artifact-laden segments. This could not only improve computational
+				efficiency but also reveal interpretable patterns linking model behavior to clinical signal
+				characteristics.
 			</p>
 
 			<p>
-				This question remains largely unanswered because prior ECG transformer models use static-depth encoders
-				and assume uniform difficulty across inputs. While Adaptive Computation Time (ACT) has been explored in
-				language modeling and reinforcement learning, it has rarely been applied to biomedical signal
-				analysis—where
-				variability in noise, arrhythmia morphology, and clinical complexity makes dynamic computation
-				especially
-				valuable. The gap is therefore both conceptual and practical: existing ECG classifiers do not treat
-				<em>computation as a controllable resource</em>, nor do they analyze how accuracy changes when
-				computation
-				becomes adaptive.
+				This project investigates whether an adaptive halting transformer can dynamically allocate computation
+				across ECG segments, comparing it to a fixed-depth baseline. Specifically, we examine whether
+				adaptive-depth models can reduce average computation without sacrificing diagnostic accuracy, whether
+				computation correlates with input difficulty or noise, and whether depth allocation provides insight
+				into local versus global feature usage. By addressing these questions, we aim to provide a
+				framework-level understanding of resource-aware deep learning for ECG classification.
 			</p>
+		</div> -->
+	<div class="content-margin-container" id="intro">
+		<div class="margin-left-block">
+		</div>
 
-			<p>
-				Our project fills this gap by implementing and evaluating a transformer model with learned adaptive
-				halting, enabling the network to decide for each ECG window how many layers it needs before making a
-				prediction. By comparing this adaptive model to a fixed-depth baseline, we investigate whether
-				computation
-				can be reduced without sacrificing performance—and whether computation correlates with clinical
-				difficulty.
-				This matters not only for model efficiency but also for deployment: wearable monitors, mobile devices,
-				and
-				bedside diagnostic tools operate under strict latency and energy constraints.
-			</p>
+		<div class="main-content-block">
 
-			<p>
-				In summary, this project asks whether dynamic computational allocation can improve both efficiency and
-				interpretability in ECG classification. In doing so, it aims to offer a framework-level insight: medical
-				AI systems may not need to “think equally hard” about every patient, a perspective that could shape the
-				design of future resource-aware diagnostic models.
-			</p>
+			The source code for the work described in this study can be found <a href="">XXXXXXX ADD
+				XXXXXXX.</a><br><br>
+			<h1>Introduction</h1>
+			Electrocardiograms (ECGs) are a cornerstone of cardiac diagnostics, widely used to detect arrhythmias
+			such as atrial fibrillation, premature ventricular contractions, and ST-segment deviations. In recent
+			years, deep learning models—particularly convolutional and transformer architectures—have demonstrated
+			high accuracy in ECG classification. However, most of these models process all input segments uniformly,
+			applying the same computational depth regardless of signal complexity. As a result, clean or simple ECG
+			segments are often over-processed, while complex or noisy segments may not receive sufficient analysis.
+			This “one-size-fits-all” approach is inefficient, particularly in contexts where energy and latency are
+			constrained, such as wearable monitors or bedside diagnostic devices. <br><br>
+
+			<img src="./images/transformer_intro.jpg" width=600px />
+
+			Adaptive computation presents a promising alternative. By allowing models to dynamically decide how much
+			processing to allocate to each input, adaptive-depth architectures can potentially reduce unnecessary
+			computation while maintaining accuracy. In natural language processing and computer vision, mechanisms
+			such as Adaptive Computation Time (ACT) and adaptive halting in transformers have demonstrated that
+			models can allocate more computation to difficult or ambiguous inputs, achieving efficiency gains and
+			providing interpretable insights into input complexity. <br><br>
+
+			Despite these advances, adaptive computation remains largely unexplored in the context of biomedical
+			signals. ECGs are inherently variable: rhythms differ in morphology, duration, and susceptibility to
+			noise. An adaptive model could, in principle, allocate fewer layers to simple sinus rhythms while using
+			deeper processing for irregular or artifact-laden segments. This could not only improve computational
+			efficiency but also reveal interpretable patterns linking model behavior to clinical signal
+			characteristics. <br><br>
+
+			This project investigates whether an adaptive halting transformer can dynamically allocate computation
+			across ECG segments, comparing it to a fixed-depth baseline. Specifically, we examine whether
+			adaptive-depth models can reduce average computation without sacrificing diagnostic accuracy, whether
+			computation correlates with input difficulty or noise, and whether depth allocation provides insight
+			into local versus global feature usage. By addressing these questions, we aim to provide a
+			framework-level understanding of resource-aware deep learning for ECG classification.
+			<br><br>
+
+		</div>
+		<div class="margin-right-block" style="transform: translate(0%, -20%);">
+			<!-- you can move the margin notes up and down with translate -->
+			<b>Figure 2.</b> From <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">Shah et
+				al. (2024)
+			</a>: <i>ECG-TransCovNet</i>. Features are extracted from ECG signals using a convolutional neural network
+			and passed into a vanilla transformer to detect arrhythmias.
+		</div>
+	</div>
+
+
+	<!-- <div class="margin-right-block">
+		<b>Figure 2.</b> From <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">Shah et
+			al. (2024)
+		</a>: <i>ECG-TransCovNet</i>. A ViT splits an image into
+		patches, encodes them with positional embeddings, processes them through a transformer encoder, and uses a
+		classification head to predict image classes.
+	</div>
+	</div> -->
+
+
+	<div class="content-margin-container" id="prior-work">
+		<div class="margin-left-block"></div>
+
+		<div class="main-content-block">
+			<h1>Prior Work</h1>
+
+			Automated ECG classification has evolved significantly with deep learning, beginning with convolutional and
+			recurrent architectures and moving toward transformer-based approaches. Early methods typically applied
+			convolutional networks to ECG waveforms, sometimes transforming the signals into spectral or time-frequency
+			representations to better capture morphological and frequency-domain features. These models effectively
+			classify common arrhythmias and establish strong benchmark performance, but they process all segments
+			uniformly, applying the same computational resources to simple and complex signals alike. This limits
+			efficiency and offers little insight into which inputs require more processing. <br><br>
+
+			More recent transformer-based models have demonstrated that self-attention can capture long-range
+			dependencies across multiple heartbeats, improving the detection of arrhythmias that depend on temporal
+			context rather than single-beat morphology. Hybrid designs that combine convolutional layers for local
+			feature extraction with transformers for global context have also shown that integrating both local and
+			long-range information enhances classification accuracy. While these models achieve high performance, they
+			still operate with a fixed number of layers for every input, ignoring variability in segment difficulty or
+			noise. As a result, they may over-process simple segments while under-analyzing challenging or noisy
+			windows, and provide limited interpretability regarding which portions of the signal drive
+			predictions.<br><br>
+
+			Other recent approaches process continuous ECG segments end-to-end, simultaneously detecting and classifying
+			heartbeats without explicit segmentation. By modeling inter-beat dependencies directly, these methods reduce
+			preprocessing complexity and capture more holistic temporal information. Nonetheless, they too maintain a
+			fixed computational depth, treating all segments equally regardless of clinical complexity or signal
+			quality. This leaves potential efficiency gains unexploited and limits the model’s ability to adapt to
+			challenging inputs.<br><br>
+
+			Outside ECG-specific work, adaptive computation has been explored in machine learning more broadly.
+			Mechanisms such as Adaptive Computation Time (ACT) allow models to dynamically allocate processing steps per
+			input, halting early on simpler cases and devoting more computation to difficult ones. Extensions of this
+			idea to transformer architectures have demonstrated that adaptive halting can reduce average computational
+			cost while preserving accuracy, and can also reveal interpretable correlations between input difficulty and
+			computation depth.<br><br>
+
+			Applying adaptive computation to ECG analysis is particularly promising because cardiac signals vary widely
+			in morphology, rhythm, and noise. An adaptive-depth transformer could allocate fewer layers to
+			straightforward sinus rhythms, while dedicating more processing to arrhythmias with complex or ambiguous
+			patterns. This dynamic allocation offers several advantages: improved computational efficiency, better
+			handling of noisy or low-confidence inputs, and insights into which features or time spans drive
+			classification decisions.<br><br>
+
+			Taken together, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
+			automated ECG classification, while adaptive computation in other domains demonstrates the benefits of
+			variable-depth processing. Our proposed approach combines these insights: it leverages transformers to
+			capture local and global ECG features while introducing adaptive halting, enabling input-dependent
+			computation. This framework addresses the limitations of fixed-depth models and provides a resource-aware,
+			interpretable, and robust paradigm for ECG classification.<br><br>
 		</div>
 
 		<div class="margin-right-block">
-			Margin note that clarifies some detail #main-content-block for intro section.
+			Margin note: situate your work at the intersection of ECG modelling, transformer architectures, and adaptive
+			computation.
 		</div>
 	</div>
 
-
-	<div class="content-margin-container" id="prior_work">
-		<div class="margin-left-block">
-		</div>
-		<div class="main-content-block">
-			<h1>Prior Work</h1>
-			It is well known that Y does Y. And this has raised the question does X do Y? Because if Y does Y then it
-			stands to reason that X does Y.
-			But we cannot answer this until we realize the Z implies Y and X can be linked to Z.<br><br>
-
-			Now let's write some math!<br>
-			<center>
-				<math xmlns="http://www.w3.org/1998/Math/MathML">
-					<mrow>
-						<mrow>
-							<mo>&#x2202;</mo>
-							<mi>y</mi>
-						</mrow>
-						<mo>/</mo>
-						<mrow>
-							<mo>&#x2202;</mo>
-							<mi>x</mi>
-						</mrow>
-					</mrow>
-					<mo>=</mo>
-					<mi>x</mi>
-				</math>
-			</center>
-			<br>
-			It's probably best to ask an LLM to help do the web
-			formatting for math. You can tell it "convert this latex equation into MathML: $$\frac{\partial dy}{\partial
-			dx} = x$$"
-			But it took me a few tries. So, if you get frustrated, you can embed an image of the equation, or use other
-			packages for
-			rendering equations on webpages.
-		</div>
-		<div class="margin-right-block" style="transform: translate(0%, -100%);">
-			<!-- you can move the margin notes up and down with translate -->
-			Interestingly, Plato also asked if X does Y, in <a href="#ref_1">[1]</a>.
-		</div>
-	</div>
 
 	<div class="content-margin-container">
 		<div class="margin-left-block">

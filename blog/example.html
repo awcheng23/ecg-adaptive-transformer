@@ -1,0 +1,977 @@
+<html>
+
+<head>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="shortcut icon" href="images/icon.ico">
+    <style type="text/css">
+        body {
+            background-color: #f5f9ff;
+        }
+
+        /* Hide both math displays initially, will display based on JS detection */
+        .mathjax-mobile,
+        .mathml-non-mobile {
+            display: none;
+        }
+
+        /* Show the MathML content by default on non-mobile devices */
+        .show-mathml .mathml-non-mobile {
+            display: block;
+        }
+
+        .show-mathjax .mathjax-mobile {
+            display: block;
+        }
+
+        .content-margin-container {
+            display: flex;
+            width: 100%;
+            /* Ensure the container is full width */
+            justify-content: left;
+            /* Horizontally centers the children in the container */
+            align-items: center;
+            /* Vertically centers the children in the container */
+        }
+
+        .main-content-block {
+            width: 70%;
+            /* Change this percentage as needed */
+            max-width: 1100px;
+            /* Optional: Maximum width */
+            background-color: #fff;
+            border-left: 1px solid #DDD;
+            border-right: 1px solid #DDD;
+            padding: 8px 8px 8px 8px;
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            #"Avenir";
+        }
+
+        .margin-left-block {
+            font-size: 14px;
+            width: 15%;
+            /* Change this percentage as needed */
+            max-width: 130px;
+            /* Optional: Maximum width */
+            position: relative;
+            margin-left: 10px;
+            text-align: left;
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            #"Avenir";
+            padding: 5px;
+        }
+
+        .margin-right-block {
+            font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+            #"Avenir";
+            font-size: 14px;
+            width: 25%;
+            /* Change this percentage as needed */
+            max-width: 256px;
+            /* Optional: Maximum width */
+            position: relative;
+            text-align: left;
+            padding: 10px;
+            /* Optional: Adds padding inside the caption */
+        }
+
+        img {
+            max-width: 100%;
+            /* Make sure it fits inside the container */
+            height: auto;
+            display: block;
+            margin: auto;
+        }
+
+        .my-video {
+            max-width: 100%;
+            /* Make sure it fits inside the container */
+            height: auto;
+            display: block;
+            margin: auto;
+        }
+
+        /* Hide both video displays initially, will display based on JS detection */
+        .vid-mobile,
+        .vid-non-mobile {
+            display: none;
+        }
+
+        /* Show the video content by default on non-mobile devices */
+        .show-vid-mobile .vid-mobile {
+            display: block;
+        }
+
+        .show-vid-non-mobile .vid-non-mobile {
+            display: block;
+        }
+
+        a:link,
+        a:visited {
+            color: #0e7862;
+            /*#1367a7;*/
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #24b597;
+            /*#208799;*/
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-top: 4px;
+            margin-bottom: 10px;
+        }
+
+        table.header {
+            font-weight: 300;
+            font-size: 17px;
+            flex-grow: 1;
+            width: 70%;
+            max-width: calc(100% - 290px);
+            /* Adjust according to the width of .paper-code-tab */
+        }
+
+        table td,
+        table td * {
+            vertical-align: middle;
+            position: relative;
+        }
+
+        table.paper-code-tab {
+            flex-shrink: 0;
+            margin-left: 8px;
+            margin-top: 8px;
+            padding: 0px 0px 0px 8px;
+            width: 290px;
+            height: 150px;
+        }
+
+        .layered-paper {
+            /* modified from: http://css-tricks.com/snippets/css/layered-paper/ */
+            box-shadow:
+                0px 0px 1px 1px rgba(0, 0, 0, 0.35),
+                /* The top layer shadow */
+                5px 5px 0 0px #fff,
+                /* The second layer */
+                5px 5px 1px 1px rgba(0, 0, 0, 0.35),
+                /* The second layer shadow */
+                10px 10px 0 0px #fff,
+                /* The third layer */
+                10px 10px 1px 1px rgba(0, 0, 0, 0.35);
+            /* The third layer shadow */
+            margin-top: 5px;
+            margin-left: 10px;
+            margin-right: 30px;
+            margin-bottom: 5px;
+        }
+
+        hr {
+            height: 1px;
+            /* Sets the height of the line to 1 pixel */
+            border: none;
+            /* Removes the default border */
+            background-color: #DDD;
+            /* Sets the line color to black */
+        }
+
+        div.hypothesis {
+            width: 80%;
+            background-color: #EEE;
+            border: 1px solid black;
+            border-radius: 10px;
+            -moz-border-radius: 10px;
+            -webkit-border-radius: 10px;
+            font-family: Courier;
+            font-size: 18px;
+            text-align: center;
+            margin: auto;
+            padding: 16px 16px 16px 16px;
+        }
+
+        div.citation {
+            font-size: 0.8em;
+            background-color: #fff;
+            padding: 10px;
+            height: 200px;
+        }
+
+        .fade-in-inline {
+            position: absolute;
+            text-align: center;
+            margin: auto;
+            -webkit-mask-image: linear-gradient(to right,
+                    transparent 0%,
+                    transparent 40%,
+                    black 50%,
+                    black 90%,
+                    transparent 100%);
+            mask-image: linear-gradient(to right,
+                    transparent 0%,
+                    transparent 40%,
+                    black 50%,
+                    black 90%,
+                    transparent 100%);
+            -webkit-mask-size: 8000% 100%;
+            mask-size: 8000% 100%;
+            animation-name: sweepMask;
+            animation-duration: 4s;
+            animation-iteration-count: infinite;
+            animation-timing-function: linear;
+            animation-delay: -1s;
+        }
+
+        .fade-in2-inline {
+            animation-delay: 1s;
+        }
+
+        .inline-div {
+            position: relative;
+            display: inline-block;
+            /* Makes both the div and paragraph inline-block elements */
+            vertical-align: top;
+            /* Aligns them at the top, you can adjust this to middle, bottom, etc., based on your needs */
+            width: 50px;
+            /* Optional: Adds space between the div and the paragraph */
+        }
+
+        .algorithm-container {
+            max-width: 600px;
+            margin: 0 auto;
+            /* Center the container */
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: left;
+            /* Ensure text within the container is left-aligned */
+            display: block;
+            /* Prevent flexbox issues */
+        }
+
+        .title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .code {
+            font-family: "Courier New", Courier, monospace;
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            text-align: left;
+            /* Explicitly set text alignment to left */
+            display: block;
+        }
+
+        .formula {
+            font-family: "Courier New", monospace;
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            display: inline-block;
+        }
+
+        li {
+            margin-bottom: 15px;
+            /* Adjust this value for desired spacing */
+        }
+
+        /* Reduce spacing for nested lists to keep structure clean */
+        ol li ol li {
+            margin-bottom: 10px;
+        }
+    </style>
+
+
+    <title>Adaptive Data Selection (ADS) Learning for Image Classification</title>
+    <meta property="og:title" content="Adaptive Data Selection (ADS) Learning for Image Classification" />
+    <meta charset="UTF-8">
+</head>
+
+<body>
+
+    <div class="content-margin-container">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <table class="header" align=left>
+                <tr>
+                    <td colspan=4>
+                        <span
+                            style="font-size: 32px; font-family: 'Courier New', Courier, monospace; /* Adds fallbacks */">Adaptive
+                            Data Selection (ADS) Learning for Image Classification: A Dive into Transfer Learning
+                            Dynamics</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td align=left>
+                        <span style="font-size:17px"><a href="https://github.com/kevinchengg">Kevin Cheng</a></span>
+                    </td>
+                    <td align=left>
+                        <span style="font-size:17px"><a href="https://github.com/mfang92">Mason Fang</a></span>
+                    </td>
+                    <td align=left>
+                        <span style="font-size:17px"><a href="https://github.com/ofoofoo">Orion Foo<Footer></Footer>
+                            </a></span>
+                    </td>
+                <tr>
+                    <td colspan=4 align=left><span style="font-size:18px">Final project for 6.7960, MIT</span></td>
+                </tr>
+            </table>
+        </div>
+        <div class="margin-right-block">
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="intro">
+        <div class="margin-left-block">
+            <!-- table of contents here -->
+            <div style="position:fixed; max-width:inherit; top:max(20%,120px)">
+                <b style="font-size:16px">Outline</b><br><br>
+                <a href="#intro">Introduction</a><br><br>
+                <a href="#prior_work">Prior Work</a><br><br>
+                <a href="#methods_experiments">Methods & Experiments</a><br><br>
+                <a href="#implementation">Technical Implementation Details</a><br><br>
+                <a href="#discussion">Discussion</a><br><br>
+                <a href="#conclusion">Conclusion</a><br><br>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="intro">
+        <div class="margin-left-block">
+        </div>
+
+        <div class="main-content-block">
+
+            The source code for the work described in this study can be found <a
+                href="https://github.com/ofoofoo/effective_transfer_learning">here.</a><br><br>
+            <h1>Introduction</h1>
+            In the field of computer vision, the ability of models to accurately classify images has long been a sought
+            after and important property. Transfer learning has emerged as a powerful paradigm in machine learning,
+            enabling the use of models pre-trainedon larger datasets to help serve as a starting point for training our
+            model, especially in the case of limited training data. By leveraging knowledge learned from large-scale
+            datasets, transfer learning promises to significantly reduce the computational and data requirements for
+            developing accurate models in diverse domains. <br><br>
+            Image classification had been dominated by convolutional neural networks (CNNs) prior to the last 4 years.
+            However, the recent introduction of the vision transformer (ViT) architecture has offered a novel and more
+            accurate model for processing visual data <a href="#ref_1">[1]</a>. ViTs divide images into fixed-size
+            patches which are flattened, linearly embedded, and appended with positional encodings to preserve spatial
+            relationships. These embeddings are then processed through a transformer encoder which uses multi-head
+            self-attention to capture global relationships between patches. Finally, this encoding is run through an MLP
+            head, which outputs a classification. A diagram summarizing the flow of a vision transformer can be found
+            below:<br><br>
+
+            <img src="./figures/vit.png" width=600px />
+
+            Unlike CNNs, ViTs do not inherently prioritize locality or translation invariance, which allows them to
+            excel at capturing long-range dependencies. Thus, by leveraging self-attention mechanisms, ViTs can capture
+            global relationships within an image more effectively than the local receptive fields of CNNs, resulting in
+            learned features that can be used for tasks including object detection, segmentation, and fine-grained
+            classification. <br><br>
+            In our study, we aim to investigate whether a ViT trained on a large image dataset can serve as an efficient
+            starting model from which we can fine-tune for smaller, more specific image datasets. Additionally, rather
+            than regular batch gradient descent, we introduce a new model training paradigm that emphasizes training on
+            the classes that have the lowest validation accuracies after some number of epochs. <br><br>
+
+            In contrast to traditional optimization methods that typically rely on randomly sampled batches of training
+            data to update model parameters, our new method, Adaptive Data Selection (ADS), takes a more focused
+            approach by targeting the worst-performing classes during training. The key innovation of ADS is its
+            adaptive selection of training data based on model performance. For instance, in a classification task with
+            100 classes, after training the model for a few epochs, we can conduct a validation phase to identify the 25
+            classes where the model is performing the worst. Instead of continuing with random data batches or balanced
+            class distributions, ADS prioritizes data from these poorly performing classes and trains the model further
+            on them for a few epochs. This process is repeated, refining the model's understanding by consistently
+            exposing it to the most challenging data points, until convergence is achieved. <br><br>
+            In the following sections, we investigate the performance of ADS when used as an optimization technique for
+            faster convergence than known methods, as well as its behavior in the context of transfer learning. <br><br>
+
+        </div>
+        <div class="margin-right-block" style="transform: translate(0%, -20%);">
+            <!-- you can move the margin notes up and down with translate -->
+            <b>Figure 1.</b> From <a href="https://arxiv.org/abs/2010.11929">Dosovitskiy et al. (2021) </a>: <i>An Image
+                is Worth 16x16 Words: Transformers for Image Recognition at Scale</i>. A ViT splits an image into
+            patches, encodes them with positional embeddings, processes them through a transformer encoder, and uses a
+            classification head to predict image classes.
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="prior_work">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <h1>Prior Work</h1>
+            Recently, there has been significant exploration of alternative optimization methods for training
+            classification models beyond traditional stochastic gradient descent (SGD). These efforts aim to improve
+            convergence rates, robustness, and adaptability to diverse tasks. In particular, steepest descent, Adam, and
+            Stochastic Variance Reduced Gradient (SVRG) have emerged as prominent methods, each trained on large
+            datasets. <br><br>
+
+            Steepest descent optimization is a gradient-based method designed to minimize a modified loss function by
+            iteratively selecting the largest modified gradient descent direction. As opposed to conventional gradient
+            descent, steepest descent introduces additional structure, often done by modifying the loss function or
+            using weighted norms to determine the steepest decrease direction <a href="#ref_2">[2]</a>. For example, the
+            steepest descent technique can adaptively scale the gradient with a preconditioner matrix or modify step
+            lengths to ensure optimal decrease at each iteration. This, in turn, may lead to faster convergence in
+            certain problems where the curvature of the loss function is complex, as it adapts the direction of descent
+            more dynamically to align better with the optimal path in the geometry of the function.<br><br>
+            Another popular modification to stochastic gradient descent is Adam. Adam is a robust optimization technique
+            that builds upon both RMSprop and momentum. It keeps running averages for both the gradients and the squared
+            magnitudes of the gradients, thus adaptively changing the learning rate for each parameter. This is very
+            useful in those models where gradients are sparse or noisy. By incorporating adaptive learning rates into
+            momentum, Adam can achieve faster convergence with less oscillations. It has seen extensive usage in deep
+            learning tasks due to its efficiency in high-dimensional parameter spaces and general reliability across
+            various architectures (<a href="#ref_3">[3]</a>, <a href="#ref_4">[4]</a>). <br><br>
+
+            In addition to Adam, Stochastic Variance Reduced Gradient (SVRG) is also a technique utilized for more
+            stable convergence. SVRG overcomes one of the major limitations of stochastic gradient descent: the variance
+            in the gradient estimates that may lead to slow convergence. By periodically computing a full gradient on
+            the entire dataset and using it to correct the stochastic gradient updates, SVRG reduces the variance and
+            stabilizes convergence. This approach works particularly well for convex and strongly convex loss functions
+            and has shown faster convergence rates compared to traditional SGD <a href="#ref_5">[5]</a>. SVRG strikes a
+            balance between computational overheads and faster iteration, hence almost always practically applicable for
+            large-scale machine learning problems.<br><br>
+
+            While steepest descent, Adam, and SVRG provide optimizers that lead to more stability and faster
+            convergence, the data they are trained on is stochastically chosen from the whole training set and act as a
+            representation of the entire training dataset. Instead of modifying the optimizer, Curriculum Learning (CL)
+            supervises and progressively changes the data that the model is being trained on <a href="#ref_6">[6]</a>.
+            CL is a machine learning technique that takes inspiration from how humans learn things: first the easy
+            concepts, then advanced. The idea behind it is to organize the training data in an easy-to-hard manner,
+            leading the model through progressively harder tasks. The key advantage of CL is that it first lets the
+            model learn the “concept” before diving into more challenging problems in order to enable efficient and
+            stable training. This method contrasts with other common traditional training methods, in which data is fed
+            randomly. Studies have shown that curriculum learning can improve generalization, reduce overfitting, and
+            lead to faster convergence, especially in complex tasks like natural language processing or computer vision
+            <a href="#ref_7">[7]</a>.<br><br>
+
+            Additionally, there have also been many recent advancements in image classification with limited training
+            examples. Feature disentanglement in the context of few-shot image classification focuses on isolating
+            independent features, such as attributes and objects to generalize effectively to unseen combinations. For
+            instance, a method proposed by Xu et al. decomposes input features into class-specific and intra-class
+            variance components. The probabilistic modeling of intra-class variance allows the generation of augmented
+            features that help improve classifier performance on few-shot tasks, especially in those conditions where
+            data diversity is at a minimum <a href="#ref_8">[8]</a>. <br><br>
+
+            Our new optimization technique, ADS, draws inspiration from CL, Adam, and few-shot learning techniques. The
+            iterative process of ADS differs from CL in the sense that it may be trained on the same data multiple times
+            throughout the entire training process and is not necessarily presented in an “increasing order of
+            difficulty”. However, whereas CL preselects the order the model sees the training data, ADS dynamically
+            selects the classes the model is performing the worst at during the training process and targets
+            optimization toward those classes using the Adam optimizer.
+
+
+        </div>
+        <div class="margin-right-block"> <!-- you can move the margin notes up and down with translate -->
+        </div>
+    </div>
+
+    <div class="content-margin-container" , id="methods_experiments">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <h1>Methods and Experiments</h1>
+            The large image dataset our initial ViT is trained on is the ImageNet dataset consisting of over 1.2 million
+            training images and 50k validation images, each of which has a resolution of 469 x 387. This pretrained ViT
+            was taken from <a href="https://huggingface.co/google/vit-base-patch16-224?library=transformers">here</a>.
+            For transfer learning, we used smaller image datasets such as the <b>Food101</b> dataset (101 classes, 1000
+            images per class), the <b> Oxford Flowers </b> dataset (102 classes, 40 and 258 images per class), and the
+            <b>Describable Textures</b> Dataset (47 classes, 120 images per classes). Our experiments were structured
+            around comparing baseline training runs against our modified training schemes designed to maximize
+            performance on transferring to these smaller datasets. <br><br>
+
+            <i>Baseline Training:</i><br><br>
+            For our baseline experiments, we ran the following two training frameworks:
+            <ol>
+                <li><b>No-freeze Training:</b> The entire model, including the encoder and classifier head, was left
+                    unfrozen and was finetuned on the smaller datasets until convergence.</li>
+                <li><b>All-freeze Training:</b> All parts of the model had their weights frozen except for the
+                    classifier head and the embedding weights, which were fine-tuned on the smaller datasets until
+                    convergence.</li>
+            </ol>
+            The motivation behind freezing and no freezing is that we hope to see that with less tunable parameters
+            during finetuning, the model will be forced to learn “efficiently”, updating its weights in a more precise
+            manner than if it had access to changing the weights of the entire model. This should theoretically lead to
+            faster convergence in terms of total data points processed. <br><br>
+
+            <i>Dynamic Training:</i><br><br>
+
+            <img src="./figures/cheezbuga.png" width=600px />
+
+            To improve the convergence rate and decrease the amount of computation needed to converge, we explored using
+            <b>targeted epochs</b>. These targeted training epochs involve modifying the distribution of training
+            samples by increasing the representation of classes that the model performed poorly on during the last
+            epoch's validation. The key steps for determining the mixture of labels within a targeted epoch were as
+            follows:
+
+            <ol>
+                <li>
+                    <strong>Class Accuracies:</strong> During the validation on the full dataset mid-training (at
+                    predefined intervals of <i>n</i> epochs, bullet point 2 for more details), we track the per-class
+                    accuracy of the model to identify the “bad classes”; these were classes that the model struggled to
+                    classify correctly and exhibited the worst overall performance on.
+                </li>
+                <li>
+                    <strong>Targeted Epoch Frequency:</strong> We varied the rate at which the training would encounter
+                    a targeted epoch to ensure optimal performance.
+                    <ol type="a">
+                        <li>
+                            <strong>Alternative Training Regimens:</strong> We explored two different methods of mixing
+                            in the targeted and general training epochs:
+                            <ol type="i">
+                                <li>
+                                    <strong>Alternating Phases (AP):</strong> Training was performed for a fixed number
+                                    of epochs on the entire dataset, followed by a fixed number of targeted epochs. This
+                                    alternation repeated throughout training. In other words, if we let a general
+                                    training epoch = G and a targeted training epoch = T, this follows the pattern (for
+                                    <i>n</i> = 3): <strong>GGGTGGTGG</strong>… Generalizing, this approach follows the
+                                    pattern of:
+                                </li>
+                                <u>Pattern Formula:</u>
+                                <p>The pattern alternates between a block of <strong>G</strong> epochs (general
+                                    training) and a block of <strong>T</strong> epochs (targeted training). The number
+                                    of <strong>G</strong> epochs decreases incrementally after the first block.</p>
+
+                                <p>
+                                    \[
+                                    \text{Pattern}(n) = \underbrace{G G \ldots G}_{n \text{ times}} \, T \,
+                                    \underbrace{G G \ldots G}_{n-1 \text{ times}} \, T \,
+                                    \underbrace{G G \ldots G}_{n-1 \text{ times}} \, T \, \ldots
+                                    \]
+                                </p>
+
+                                Examples:
+                                <ul>
+                                    <li>
+                                        \( n = 2: \, GG \, T \, G \, T \, G \, T \ldots \)
+                                    </li>
+                                    <li>
+                                        \( n = 3: \, GGG \, T \, GG \, T \, GG \, T \ldots \)
+                                    </li>
+                                    <li>
+                                        \( n = 4: \, GGGG \, T \, GGG \, T \, GGG \, T \ldots \)
+                                    </li>
+                                </ul>
+
+                                <li>
+                                    <strong>Transition to Only Targeted Epochs (TOTE):</strong> Training was performed
+                                    for a fixed number of epochs on the entire dataset. Then, training shifts entirely
+                                    to a dynamically mixed dataset <em>with an emphasis on the bad classes</em>, using
+                                    updated mixtures determined periodically through validation. Below is an example of
+                                    what the training order might look like (for <i>n</i> = 3):
+                                    <strong>GGGTTT|TTT|TTT</strong>…, where a vertical bar represents updating the
+                                    dynamic mixture. In this pattern, the training transitions entirely to a dynamically
+                                    mixed dataset with an emphasis on the bad classes, using updated mixtures determined
+                                    periodically through validation. Each update is represented by a vertical bar
+                                    <code>|</code>. Generalizing, this approach follows the pattern of:
+                                </li>
+
+                                <u>Pattern Formula:</u>
+                                <p>
+                                    \[
+                                    \text{Pattern}(n) = \underbrace{G G \ldots G}_{n \text{ times}} \,
+                                    \underbrace{T T \ldots T}_{n \text{ times}} \, \mid \,
+                                    \underbrace{T T \ldots T}_{n \text{ times}} \, \mid \,
+                                    \underbrace{T T \ldots T}_{n \text{ times}} \, \ldots
+                                    \]
+                                </p>
+
+                                Examples:
+                                <ul>
+                                    <li>
+                                        \( n = 2: \, GGTT \, \mid \, TT \, \mid \, TT \, \mid \, TT \ldots \)
+                                    </li>
+                                    <li>
+                                        \( n = 3: \, GGGTTT \, \mid \, TTT \, \mid \, TTT \ldots \)
+                                    </li>
+                                    <li>
+                                        \( n = 4: \, GGGGTTTT \, \mid \, TTTT \, \mid \, TTTT \ldots \)
+                                    </li>
+                                </ul>
+                            </ol>
+                        </li>
+                    </ol>
+                <li>
+                    <b>Top-k Bad Classes:</b> We selected the top <em>k</em> classes with the lowest accuracy to
+                    emphasize in subsequent epochs.
+                    This varied from between 5% → 50% of the total number of samples in each dataset.
+                </li>
+                <li>
+                    <b>Distribution of Classes:</b> We adjusted the proportion of samples per class in the training
+                    dataset to over-represent these bad classes while maintaining a balanced representation of the
+                    remaining classes.
+                    This was explored with weights of \(w = [0.6, 0.8, 1]\), where 1 represents only mixing in the bad
+                    classes and 0 approaches vanilla training. These weights refer to the proportion of samples in the
+                    epoch that are from the "bad classes". Meanwhile, the remaining classes are weighted so that they
+                    comprise \(p = 1-w\) proportion of the total samples in that epoch.
+                </li>
+
+            </ol>
+
+            </li>
+            </li>
+            </ol>
+
+            Overall, we expect that varying these training hyperparameters will provide differing levels of performance,
+            but hopefully allow for a tunable approach to trading-off accuracy for computational usage. <br><br>
+
+
+            <i>Scratch Training:</i><br><br>
+            Finally, we also explore training a ViT model from scratch. We compare using the ADS framework for training
+            against vanilla training, hopefully seeing improvements in convergence rates due to the addition of targeted
+            epochs. Due to compute and budget constraints this is only conducted on the Food101 dataset.<br><br>
+
+        </div>
+        <div class="margin-right-block" style="transform: translate(0%, -250%);">
+            <b>Figure 2.</b> The ADS training scheme with alternating phases. Every \(n\) batches (shown with \(n=3\)),
+            the training dataset is replaced by a reweighted dataset where the classes that the model achieves lowest
+            accuracy on during validation are weighted higher than the classes that the model achieves higher accuracy
+            on.
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="implementation">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <h1>Technical Implementation Details</h1>
+            All experiments in this study were conducted using an Nvidia A40 GPU. <br><br>
+
+            As for the training details, we used an Adam optimizer with an initial learning rate of \(10^{-4}\). A
+            cosine-annealing learning rate scheduler was also used with a minimum learning rate of \(10^{-5}\) for a
+            maximum number of steps equal to the number of training epochs. We also implement early stopping for our
+            runs, with a patience of 5 epochs, tracking the validation accuracy for any improvements each epoch.
+            <br><br>
+
+            <div class="algorithm-container">
+                <div class="title">Algorithm: Early Stopping Algorithm</div>
+                <div><strong>Inputs:</strong> Validation Metric (<code>CurrentValue</code>), Patience (<code>P</code>),
+                    Minimum Delta (<code>&delta;</code>)</div>
+                <div><strong>Initialization:</strong> <code>BestValue &larr; -∞</code>, <code>Counter &larr; 0</code>
+                </div>
+                <div class="code">
+                    While Training is ongoing:<br>
+                    &nbsp;&nbsp;If (<code>CurrentValue &gt; BestValue + δ</code>):<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;BestValue &larr; CurrentValue<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Counter &larr; 0<br>
+                    &nbsp;&nbsp;Else:<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Counter &larr; Counter + 1<br>
+                    &nbsp;&nbsp;If (<code>Counter &geq; P</code>):<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Stop Training<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Break
+                </div>
+            </div><br><br>
+
+            Finally, we set a seed for all runs to ensure that all runs are consistent and not due to random chance. For
+            the sake of reducing computation time, we subsetted the Food101 dataset to take 50% of the all training and
+            validation samples. All datasets were trained and validated using batch sizes of 128 and 512 images,
+            respectively.
+
+
+        </div>
+        <div class="margin-right-block">
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="discussion">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <h1>Discussion</h1>
+            Now, let's interpret the results of our study.<br><br>
+
+            <i>Freezing encoder layers during training:</i><br><br>
+
+            <img src="./figures/fl_no_freeze_all_freeze.png" width="600px" style="padding-top: 50px;" />
+            <img src="./figures/dtd_no_freeze_all_freeze.png" width="600px" style="padding-bottom: 50px;" />
+
+            Freezing the transformer encoder layers during fine-tuning proved to be detrimental to the models’ accuracy
+            and convergence time. As shown in Figure 3, in which the models were trained following the vanilla training
+            scheme, the models with frozen transformer encoders took many more epochs/batches to converge compared to
+            those without any freezing. Furthermore, the frozen model converged at a significantly lower accuracy value
+            (66.3%) than the unfrozen model (73.6%) on DTD, as shown in Figure 3.<br><br>
+
+            <i>ADS for Transfer Learning:</i><br><br>
+            Several combinations of ADS training hyperparameters achieved higher accuracy and quicker convergence than
+            vanilla training on the Oxford Flowers and DTD datasets. Note that we use the number of batches required for
+            convergence rather than the number of epochs for comparing different training schemes since ADS uses much
+            fewer batches in the reweighted epochs.<br><br>
+
+            <img src="./figures/fl_mixone_nomixone.png" width="600px" style="padding-top: 50px;" />
+
+            First, the alternating phases approach proved much more successful than using only targeted epochs, as shown
+            in Figure 4. Shifting to only the worst-performing classes is prone to overfitting; the model begins to
+            “forget” about the classes it performed well on. Therefore, we used only the alternating phases approach in
+            subsequent experiments. <br><br>
+
+            <div style="text-align: center; margin-bottom: 5px;">
+                <b>Flowers</b>
+            </div>
+            <table border="1" cellpadding="8" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Training Scheme</th>
+                        <th>Targeted Epoch Frequency</th>
+                        <th># of Top-k Bad Classes</th>
+                        <th>Highest Accuracy*</th>
+                        <th># batches for convergence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Vanilla</td>
+                        <td>N/A</td>
+                        <td>N/A</td>
+                        <td>97.71%</td>
+                        <td>440</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Ours</td>
+                        <td>2</td>
+                        <td>25</td>
+                        <td><b style="color:blue">97.84%</b></td>
+                        <td>393</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Ours</td>
+                        <td>4</td>
+                        <td>25</td>
+                        <td>97.74%</td>
+                        <td><b style="color:blue">305</b></td>
+                    </tr>
+                </tbody>
+            </table><br><br>
+
+
+            As shown in Table 1, taking the 25 classes with the lowest validation accuracy in each reweighting phase
+            achieved slightly higher accuracies after training with significantly fewer batches. Model 2, trained by
+            inserting targeted epochs every 2 epochs, achieved ~97.7% accuracy in a similar number of batches to Model
+            3, but was able to continue learning before converging at 97.8% accuracy in significantly fewer batches than
+            the vanilla approach.
+
+            <div style="text-align: center; margin-bottom: 5px;">
+                <b>DTD</b>
+            </div>
+            <table border="1" cellpadding="8" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Training Scheme</th>
+                        <th>Targeted Epoch Frequency</th>
+                        <th># of Top-k Bad Classes</th>
+                        <th>Highest Accuracy*</th>
+                        <th># batches for convergence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Vanilla</td>
+                        <td>N/A</td>
+                        <td>N/A</td>
+                        <td>73.55%</td>
+                        <td>255</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Ours</td>
+                        <td>2</td>
+                        <td>5</td>
+                        <td>73.59</td>
+                        <td><b style="color:blue">225</b></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Ours</td>
+                        <td>3</td>
+                        <td>12</td>
+                        <td><b style="color:blue">73.92%</b></td>
+                        <td>183</td>
+                    </tr>
+                </tbody>
+            </table><br><br>
+
+            Experiments run on DTD achieved similar results to those run on Oxford Flowers, as shown in Table 2. Model 2
+            converged to a similar accuracy to Model 1 (vanilla), but in significantly fewer batches. Furthermore, Model
+            3 achieved significantly higher accuracy in more batches than Model 2, but still fewer batches than the
+            vanilla approach. <br><br>
+
+            <img src="./figures/dtd_prop_comparison.png" width="600px" style="padding-top: 50px;" />
+
+            Changing the proportion of weight in the reweighted dataset given to the top-k bad classes was
+            inconsequential; as shown in Figure 5, all models achieved very similar training histories.<br><br>
+
+            <i>Training from Scratch on Food101:</i><br><br>
+
+            <img src="./figures/food_from_scratch.png" width="600px" style="padding-top: 50px;" />
+
+            ADS was much more successful than vanilla training when training a ViT from scratch. As shown in Figure 6,
+            vanilla training converged at ~16% accuracy on the Food101 dataset, while ADS, despite its intrinsically
+            more unstable training history due to the insertion of reweighted epochs, continued to grow past ~34%
+            accuracy (training stopped early due to computational constraints). We believe that this shows great promise
+            in proving that ADS allows models to continue learning valuable information in later epochs due to the
+            presence of targeted epochs, although further experimentation on training models from scratch is needed to
+            prove that this is the case.
+
+
+
+
+
+
+        </div>
+        <div class="margin-right-block" style="transform: translate(0%, -100%);">
+            <p style="transform: translate(0%, -300%);">
+                <b>Figure 3.</b> Comparing parameter freezing with no parameter freezing for fine-tuning on Oxford
+                Flowers (top) and DTD (bottom).
+            </p>
+
+            <p style="transform: translate(0%, 500%);">
+                <b>Figure 4.</b> Results of comparing the alternating phases scheme with the only targeted epochs scheme
+                on Oxford Flowers. Note that alternating phases converges to a significantly higher validation accuracy.
+            </p>
+
+            <p style="transform: translate(0%, 700%);">
+                <b>Table 1.</b> Results of vanilla and ADS training with several hyperparameters on Oxford Flowers. All
+                of our runs were run with alternating phases.
+
+                *the accuracy described here is the average accuracy over a sliding window of width 3.
+            </p>
+
+            <p style="transform: translate(0%, 900%);">
+                <b>Table 2.</b> Results of vanilla and ADS training with several hyperparameters on DTD. All of our runs
+                were run with alternating phases.
+
+                *the accuracy described here is the average accuracy over a sliding window of width 3.
+            </p>
+
+            <p style="transform: translate(0%, 2300%);">
+                <b>Figure 5.</b> Results of varying the proportion of weight given to the worst classes in the
+                reweighted dataset on DTD.
+            </p>
+
+            <p style="transform: translate(0%, 3200%);">
+                <b>Figure 6.</b> Results of training ViTs from scratch, once with vanilla training and once with our ADS
+                scheme.
+            </p>
+        </div>
+
+
+    </div>
+
+    <div class="content-margin-container" id="conclusion">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <h1>Conclusion</h1>
+            In this study, we investigated a new training paradigm for optimizing image classification models called
+            Adaptive Data Selection (ADS). Whereas typical optimization methods involve running an optimizer on randomly
+            selected or predetermined batches of training data (e.g. curriculum learning), ADS utilizes a dynamic
+            training selection procedure that tailors training toward the model's specific weaknesses, focusing on
+            underperforming regions of the training data distribution. Specifically, in a classification problem, our
+            ADS framework evaluates the model's performance after some number of training epochs and identifies the
+            top-k classes where the model is performing the worst in (in terms of classification accuracy). Then, some
+            subsequent training epochs prioritize data from these worst performing classes, allowing the model to
+            improve on its deficiencies. The rationale behind this is that, in order to speed up convergence with
+            limited data, ADS can effectively concentrate its computational resources on resolving performance
+            bottlenecks. This targeted process of identifying poor performing classes and training on them is repeated
+            until convergence.<br><br>
+            Our experiments explored the effectiveness of ADS in various scenarios, including transfer learning with
+            pre-trained ViT models and training ViTs up from scratch. Our findings on the applicability of ADS to
+            transfer learning include:
+
+            <ol>
+                <li>
+                    ADS showed faster convergence and outperformed standard stochastic training methods. In the Oxford
+                    Flowers dataset, ADS achieved higher accuracy with much fewer training batches than traditional
+                    methods. A model trained with ADS, with an accuracy of 97.74%, outperformed baseline models while
+                    using fewer batches (305 vs 440).
+                </li>
+                <li>
+                    On the Describable Textures Dataset (DTD), ADS similarly showed notable improvements in convergence
+                    rates (183 batches vs 255 batches) while exceeding baseline accuracy, further validating its
+                    effectiveness across different datasets.
+                </li>
+                <li>
+                    We also ran transfer learning experiments where we trained one model while freezing the transformer
+                    encoder layers and one model while not freezing any weights. The motivation for freezing the
+                    transformer weights was that, with less tunable parameters, the model would need to learn more
+                    efficiently and thus lead to faster convergence in terms of total data points trained on and total
+                    epochs. However, we found that this freezing technique resulted in markedly lower performance and
+                    took many more epochs and batches to converge when fine-tuned on the Flowers dataset. Additionally,
+                    the frozen model achieved a substantially lower validation accuracy of 66.3% than the free unfrozen
+                    model with a validation accuracy of 73.6% when trained on the DTD dataset. This leads us to believe
+                    that freezing the transformer encoder may not allow enough model expressivity.
+                </li>
+            </ol>
+
+
+            We also trained models from scratch using ADS. In particular, we investigated the performance of ADS by
+            training a classification model on the Food101 dataset. We trained two vision transformers of the same
+            dimensions: one using the targeted ADS data selection method and one using stochastic data selection. We
+            found that the ViT trained using ADS (validation accuracy 0.336) significantly outperforms the standard ViT
+            (validation accuracy 0.163). It is worth noting that due to our limited model size, training capabilities,
+            and computational resources, our models are not performing as well as state-of-the-art models. However, the
+            relative performance between the two models under these constraints is clear. <br><br>
+
+            ADS represents a step toward efficient and adaptive methods of training in deep learning. In this regard, it
+            is especially promising for applications where either the training data is severely imbalanced or the
+            available computational power is limited. An extension to reinforcement learning would aim at prioritizing
+            states and actions where policies are not performing well, thus leading to faster convergence in complex
+            environments. In natural language processing, ADS may dynamically focus on ambiguous samples, which could
+            enhance model performance for tasks such as sentiment analysis or machine translation. Future development of
+            the ADS algorithm could focus on optimizing how many top-k classes to choose for training or by performing
+            hyperparameter sweeps on the number of epochs per training section in our AP or TOTE training schemes. It is
+            worth nothing that in our experiments, we were limited by our computing power and were unable to run
+            extensive trials to exhaustively test our conclusions. Thus, to make the method more solid and proven, more
+            trials would need to be conducted to ensure that the difference in performance is statistically significant.
+            Additionally, the choice of datasets and hyperparameters were also partially chosen to ensure that we would
+            have time to run all experiments that we deemed necessary. This may have led to unoptimal parameter choices
+            for select a select few experiments and may require further study.
+        </div>
+        <div class="margin-right-block">
+        </div>
+    </div>
+
+    <div class="content-margin-container" id="citations">
+        <div class="margin-left-block">
+        </div>
+        <div class="main-content-block">
+            <div class='citation' id="references" style="height:auto"><br>
+                <span style="font-size:16px">References:</span><br><br>
+                <a id="ref_1"></a>[1] <a href="https://arxiv.org/abs/2010.11929">An Image is Worth 16x16 Words:
+                    Transformers for Image Recognition at Scale</a>, Dosovitskiy et al., 2020<br><br>
+                <a id="ref_2"></a>[2] <a href="https://arxiv.org/pdf/2405.14813">Scalable Optimization in the Modular
+                    Norm</a>, Large et al., 2024<br><br>
+                <a id="ref_3"></a>[3] <a href="https://arxiv.org/abs/1412.6980">Adam: A Method for Stochastic
+                    Optimization</a>, Kingma et al., 2014<br><br>
+                <a id="ref_4"></a>[4] <a href="https://arxiv.org/abs/2208.09632">Adam Can Converge Without Any
+                    Modification On Update Rules</a>, Zhang et al., 2022<br><br>
+                <a id="ref_5"></a>[5] <a href="https://arxiv.org/abs/2311.05589">A Coefficient Makes SVRG Effective</a>,
+                Yin et al., 2023<br><br>
+                <a id="ref_6"></a>[6] <a
+                    href="https://www.sciencedirect.com/science/article/pii/0010027793900584">Learning and development
+                    in neural networks: the importance of starting small</a>, Elman, 1993<br><br>
+                <a id="ref_7"></a>[7] <a href="https://arxiv.org/abs/1808.01097">CurriculumNet: Weakly Supervised
+                    Learning from Large-Scale Web Images</a>, Guo et al., 2018<br><br>
+                <a id="ref_8"></a>[8] <a href="https://arxiv.org/abs/2010.03255">Variational Feature Disentangling for
+                    Fine-Grained Few-Shot Classification</a>, Xu et al., 201<br><br>
+            </div>
+        </div>
+        <div class="margin-right-block">
+            <!-- margin notes for reference block here -->
+        </div>
+    </div>
+
+</body>
+
+</html>
