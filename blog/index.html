@@ -355,7 +355,8 @@
 			such as atrial fibrillation, premature ventricular contractions, and ST-segment deviations. In recent
 			years, deep learning models—particularly convolutional and transformer architectures—have demonstrated
 			high accuracy in ECG classification. However, most of these models process all input segments uniformly,
-			applying the same computational depth regardless of signal complexity. As a result, clean or simple ECG
+			applying the same computational depth regardless of signal complexity <a href="#ref_1">[1]</a>. As a result,
+			clean or simple ECG
 			segments are often over-processed, while complex or noisy segments may not receive sufficient analysis.
 			This “one-size-fits-all” approach is inefficient, particularly in contexts where energy and latency are
 			constrained, such as wearable monitors or bedside diagnostic devices. <br><br>
@@ -416,29 +417,32 @@
 			convolutional networks to ECG waveforms, sometimes transforming the signals into spectral or time-frequency
 			representations to better capture morphological and frequency-domain features. These models effectively
 			classify common arrhythmias and establish strong benchmark performance, but they process all segments
-			uniformly, applying the same computational resources to simple and complex signals alike. This limits
+			uniformly, applying the same computational resources to simple and complex signals alike. [<a
+				href="#ref_ullah">2</a>] This limits
 			efficiency and offers little insight into which inputs require more processing. <br><br>
 
 			More recent transformer-based models have demonstrated that self-attention can capture long-range
 			dependencies across multiple heartbeats, improving the detection of arrhythmias that depend on temporal
 			context rather than single-beat morphology. Hybrid designs that combine convolutional layers for local
 			feature extraction with transformers for global context have also shown that integrating both local and
-			long-range information enhances classification accuracy. While these models achieve high performance, they
+			long-range information enhances classification accuracy [<a href="#ref_akan">3</a>]. While these models
+			achieve high performance, they
 			still operate with a fixed number of layers for every input, ignoring variability in segment difficulty or
 			noise. As a result, they may over-process simple segments while under-analyzing challenging or noisy
 			windows, and provide limited interpretability regarding which portions of the signal drive
 			predictions.<br><br>
 
-			Other recent approaches process continuous ECG segments end-to-end, simultaneously detecting and classifying
+			Recent approaches also process continuous ECG segments end-to-end, simultaneously detecting and classifying
 			heartbeats without explicit segmentation. By modeling inter-beat dependencies directly, these methods reduce
-			preprocessing complexity and capture more holistic temporal information. Nonetheless, they too maintain a
+			preprocessing complexity and capture more holistic temporal information. Nonetheless, these too maintain a
 			fixed computational depth, treating all segments equally regardless of clinical complexity or signal
 			quality. This leaves potential efficiency gains unexploited and limits the model’s ability to adapt to
 			challenging inputs.<br><br>
 
 			Outside ECG-specific work, adaptive computation has been explored in machine learning more broadly.
 			Mechanisms such as Adaptive Computation Time (ACT) allow models to dynamically allocate processing steps per
-			input, halting early on simpler cases and devoting more computation to difficult ones. Extensions of this
+			input, halting early on simpler cases and devoting more computation to difficult ones [<a
+				href="#ref_graves">4</a>]. Extensions of this
 			idea to transformer architectures have demonstrated that adaptive halting can reduce average computational
 			cost while preserving accuracy, and can also reveal interpretable correlations between input difficulty and
 			computation depth.<br><br>
@@ -450,7 +454,7 @@
 			handling of noisy or low-confidence inputs, and insights into which features or time spans drive
 			classification decisions.<br><br>
 
-			Taken together, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
+			Altogether, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
 			automated ECG classification, while adaptive computation in other domains demonstrates the benefits of
 			variable-depth processing. Our proposed approach combines these insights: it leverages transformers to
 			capture local and global ECG features while introducing adaptive halting, enabling input-dependent
@@ -497,9 +501,19 @@
 		<div class="main-content-block">
 			<div class='citation' id="references" style="height:auto"><br>
 				<span style="font-size:16px">References:</span><br><br>
-				<a id="ref_1"></a>[1] <a href="https://en.wikipedia.org/wiki/Allegory_of_the_cave">Allegory of the
-					Cave</a>, Plato, c. 375 BC<br><br>
-				<a id="ref_2"></a>[2] <a href="">A Human-Level AGI</a>, OpenAI, 2025<br><br>
+				<a id="ref_1"></a>[1] <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">
+					ECG-TransCovNet: A hybrid transformer model for accurate arrhythmia detection using
+					Electrocardiogram signals</a>,
+				Shah, et al., 2024<br><br>
+				<a id="ref_ullah"></a>[2] <a href="https://arxiv.org/abs/2005.06902">
+					Classification of Arrhythmia by Using Deep Learning with 2-D ECG Spectral Image Representation</a>,
+				Ullah, et al., 2020<br><br>
+				<a id="ref_akan"></a>[3] <a href="https://arxiv.org/abs/2401.05434">
+
+					ECGformer: Leveraging transformer for ECG heartbeat arrhythmia classification</a>,
+				Akan, et al., 2024<br><br>
+				<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
+					Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
 			</div>
 		</div>
 		<div class="margin-right-block">
