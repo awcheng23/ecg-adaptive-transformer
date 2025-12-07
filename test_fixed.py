@@ -90,6 +90,7 @@ def evaluate_baseline():
     all_probs = []  # probability of class 1 (abnormal)
     all_labels = []
     inference_times = []  # time per batch
+    inference_times_per_sample = []  # time per individual sample
     flops_per_batch = []  # estimated FLOPs per test batch
     
     print("\nRunning inference on test set...")
@@ -106,12 +107,16 @@ def evaluate_baseline():
                 flops_cached = flops_val
             flops_per_batch.append(flops_cached)
             
-            # Inference
+            # Inference with per-sample timing
             import time
             start_time = time.time()
             logits = model(x)  # (B, 2)
             inference_time = time.time() - start_time
             inference_times.append(inference_time)
+            
+            # Record time per sample in batch
+            time_per_sample_batch = inference_time / x.size(0)
+            inference_times_per_sample.extend([time_per_sample_batch] * x.size(0))
             
             # Get predictions & probabilities
             probs = torch.softmax(logits, dim=1)  # (B, 2)
@@ -185,6 +190,21 @@ def evaluate_baseline():
     avg_flops_per_sample = avg_flops_per_batch / batch_size
     total_est_flops = avg_flops_per_batch * len(test_loader)
     
+    # Per-class timing metrics
+    inference_times_per_sample = np.array(inference_times_per_sample)
+    
+    # Normal (class 0) timing
+    normal_mask = all_labels == 0
+    normal_times = inference_times_per_sample[normal_mask]
+    avg_time_normal = np.mean(normal_times) if len(normal_times) > 0 else 0
+    median_time_normal = np.median(normal_times) if len(normal_times) > 0 else 0
+    
+    # Abnormal (class 1) timing
+    abnormal_mask = all_labels == 1
+    abnormal_times = inference_times_per_sample[abnormal_mask]
+    avg_time_abnormal = np.mean(abnormal_times) if len(abnormal_times) > 0 else 0
+    median_time_abnormal = np.median(abnormal_times) if len(abnormal_times) > 0 else 0
+    
     print(f"\n6. COMPUTATIONAL EFFICIENCY (Baseline):")
     print(f"   Avg inference time per batch ({batch_size} samples): {avg_inference_time*1000:.2f} ms")
     print(f"   Total inference time: {total_inference_time:.2f} seconds")
@@ -193,6 +213,17 @@ def evaluate_baseline():
     print(f"   Avg FLOPs per sample: {avg_flops_per_sample:.2e}")
     print(f"   Total est. FLOPs over test set: {total_est_flops:.2e}")
     print(f"   (Adaptive halting will improve these metrics)")
+    
+    print(f"\n6b. PER-CLASS TIMING ANALYSIS:")
+    print(f"   Normal samples (class 0):")
+    print(f"      Avg time per sample: {avg_time_normal*1000:.4f} ms")
+    print(f"      Median time per sample: {median_time_normal*1000:.4f} ms")
+    print(f"      Count: {len(normal_times)}")
+    print(f"   Abnormal samples (class 1):")
+    print(f"      Avg time per sample: {avg_time_abnormal*1000:.4f} ms")
+    print(f"      Median time per sample: {median_time_abnormal*1000:.4f} ms")
+    print(f"      Count: {len(abnormal_times)}")
+    print(f"   (Adaptive halting should be faster on normal samples)")
     
     # 7. Per-class performance
     print(f"\n7. PER-CLASS PERFORMANCE:")
@@ -234,6 +265,12 @@ def evaluate_baseline():
         "precision_per_class": [float(precision_0), float(precision_1)],
         "recall_per_class": [float(recall_0), float(recall_1)],
         "f1_per_class": [float(f1_0), float(f1_1)],
+        "avg_time_normal_ms": float(avg_time_normal * 1000),
+        "median_time_normal_ms": float(median_time_normal * 1000),
+        "count_normal": int(len(normal_times)),
+        "avg_time_abnormal_ms": float(avg_time_abnormal * 1000),
+        "median_time_abnormal_ms": float(median_time_abnormal * 1000),
+        "count_abnormal": int(len(abnormal_times)),
     }
     
     torch.save(results, "checkpoints/baseline_metrics.pt")
