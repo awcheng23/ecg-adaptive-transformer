@@ -24,16 +24,15 @@ class PositionalEncoding(nn.Module):
 
 class AdaptiveCNNTransformer(nn.Module):
     """
-    Adaptive-depth CNN+Transformer for ECG segments.
+    Adaptive-depth CNN+Transformer for 1D ECG segments.
 
-    Input:  (B, 1, 5000)
-    Steps:
-      - 2 Conv1d layers for patch embedding -> (B, 100, d_model)
-      - stack of TransformerEncoderLayers
-      - ACT-style halting distribution over layers
-      - mean-field aggregation over depth -> final representation
-      - 2-layer MLP head -> logits (B, 2)
-      - returns (logits, ponder_loss)
+    - 2 Conv1d layers for patch embedding → (B, num_patches, d_model)
+    - Stack of TransformerEncoderLayers
+    - ACT-style halting over *depth* (layers), inspired by A-ViT Block_ACT.forward_act
+    - Aggregates layer outputs with (delta1 + delta2) (Graves ACT)
+    - Returns: logits, ponder_loss
+
+    ponder_loss is the batch-mean "computation time" ρ ≈ (N + r) from ACT.
     """
 
     def __init__(
@@ -46,7 +45,7 @@ class AdaptiveCNNTransformer(nn.Module):
         num_classes: int = 2,
         dim_feedforward: int = 256,
         dropout: float = 0.1,
-        halt_epsilon: float = 0.05,   # epsilon in ACT / A-ViT
+        halt_epsilon: float = 0.05,   # epsilon like self.eps in A-ViT
     ):
         super().__init__()
 
@@ -78,121 +77,186 @@ class AdaptiveCNNTransformer(nn.Module):
         self.bn2 = nn.BatchNorm1d(d_model)
         self.act2 = nn.ReLU()
 
-        # ---- Positional encoding ----
         self.pos_encoder = PositionalEncoding(d_model, max_len=self.num_patches)
 
-        # ---- Transformer: explicit stack of layers ----
+        # ---- explicit stack of transformer layers ----
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=n_heads,
             dim_feedforward=dim_feedforward,
             dropout=dropout,
-            batch_first=True,   # (B, S, E)
+            batch_first=True,
         )
-        self.layers = nn.ModuleList(
-            [encoder_layer for _ in range(num_layers)]
-        )
+        self.layers = nn.ModuleList([encoder_layer for _ in range(num_layers)])
 
-        # ---- Halting module parameters (shared across layers) ----
-        # h_l = sigmoid( gamma * state_l[..., 0] + beta )
-        self.halt_gamma = nn.Parameter(torch.tensor(5.0))
-        self.halt_beta  = nn.Parameter(torch.tensor(-10.0))
+        # ---- halting parameters (similar to gate_scale/gate_center) ----
+        # h_l = sigmoid( gamma * z_l[..., 0] - center )
+        self.halt_gamma = nn.Parameter(torch.tensor(1.0))
+        self.halt_center = nn.Parameter(torch.tensor(1.0))
 
-        # ---- 2-layer MLP classification head ----
+        # ---- 2-layer MLP head ----
         self.mlp_head = nn.Sequential(
             nn.Linear(d_model, d_model),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(d_model, num_classes),   # logits for 0/1
+            nn.Linear(d_model, num_classes),
         )
 
     def forward(self, x: torch.Tensor):
         """
-        x: (B, 1, 5000)
-        returns: logits (B, 2), ponder_loss (scalar)
+        Training-time forward with ACT-style depth halting.
+
+        x: (B, 1, seq_len)
+        returns: logits (B, num_classes), ponder_loss (scalar)
         """
         B = x.size(0)
+        device = x.device
+        L = self.num_layers
+        eps = self.halt_epsilon
 
-        # ---- CNN patch embedding ----
+        # ---------- CNN patch embedding ----------
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.act1(x)
 
         x = self.conv2(x)
         x = self.bn2(x)
-        x = self.act2(x)          # (B, d_model, 100)
+        x = self.act2(x)          # (B, d_model, num_patches)
 
-        # (B, 100, d_model)
+        x = x.transpose(1, 2)     # (B, num_patches, d_model)
+        x = self.pos_encoder(x)   # add PE
+
+        # ---------- ACT over depth (layers) ----------
+        # This mirrors the structure of forward_features_act_token from A-ViT,
+        # but with depth as the "time" dimension and a single global token z_l.
+
+        # c: cumulative halting
+        c = torch.zeros(B, device=device)          # like c_token
+        # R: remainder mass
+        R = torch.ones(B, device=device)           # like R_token
+        # mask: which samples are still active (1 = active, 0 = done)
+        mask = torch.ones(B, device=device)        # like mask_token
+        # rho: computation cost (ponder)
+        rho = torch.zeros(B, device=device)        # like rho_token
+
+        # output representation (weighted sum over depths)
+        output = torch.zeros(B, self.d_model, device=device)
+
+        for l, layer in enumerate(self.layers):
+            # Run full layer (we don't bother masking x here; A-ViT does for tokens)
+            x = layer(x)                           # (B, S, d_model)
+            z = x.mean(dim=1)                      # (B, d_model) global ECG representation
+
+            # ---- halting score for this depth (like halting_score_token) ----
+            first_dim = z[:, 0]                    # (B,)
+            h_l = torch.sigmoid(self.halt_gamma * first_dim - self.halt_center)  # (B,)
+
+            # Force final layer to halt everyone (like setting h=1 at last)
+            if l == L - 1:
+                h_l = torch.ones_like(h_l)
+
+            # Only active samples contribute
+            active = (mask > 0.0)
+            h_eff = h_l * active.float()           # (B,)
+
+            # Update cumulative halting
+            c = c + h_eff
+
+            # Base cost: each active sample pays 1 layer compute (like rho_token += mask)
+            rho = rho + mask
+
+            # Determine which just reached threshold, which still haven't
+            reached = (c > 1.0 - eps) & active     # Case 1 in A-ViT
+            not_reached = (c < 1.0 - eps) & active # Case 2 in A-ViT
+
+            reached_f = reached.float()
+            not_reached_f = not_reached.float()
+
+            # Case 1: reached in this layer → use remainder R as weight (delta1)
+            # delta1 = z * R * reached
+            delta1 = z * (R * reached_f).unsqueeze(-1)
+            # extra ponder from remainder (rho_token += R * reached)
+            rho = rho + R * reached_f
+
+            # Case 2: not reached yet → weight by h_l (delta2)
+            # Update remainder: R = R - h_l where not reached
+            R = R - (h_eff * not_reached_f)
+            delta2 = z * (h_eff * not_reached_f).unsqueeze(-1)
+
+            output = output + delta1 + delta2
+
+            # Update mask: still active if below threshold
+            mask = (c < 1.0 - eps).float()
+
+        # After all layers: rho ≈ N + r per sample
+        ponder_loss = rho.mean()
+
+        logits = self.mlp_head(output)  # (B, num_classes)
+        return logits, ponder_loss
+
+    @torch.no_grad()
+    def forward_infer(self, x: torch.Tensor, eps: float = None):
+        """
+        Inference-time forward with *logical* early exit.
+
+        NOTE: This version still runs all layers (so it's simple & backprop-safe),
+        but uses the same ACT logic to build 'output'. If you want *true* compute
+        savings at inference, we can further mask x per layer and break early.
+        """
+        if eps is None:
+            eps = self.halt_epsilon
+
+        B = x.size(0)
+        device = x.device
+        L = self.num_layers
+
+        # CNN patch embedding
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.act1(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.act2(x)
         x = x.transpose(1, 2)
         x = self.pos_encoder(x)
 
-        # ---- run transformer layer-by-layer and store global states ----
-        states = []  # list of length L, each (B, d_model)
+        c = torch.zeros(B, device=device)
+        R = torch.ones(B, device=device)
+        mask = torch.ones(B, device=device)
 
-        for layer in self.layers:
-            x = layer(x)                  # (B, S, d_model)
-            # Global representation at this depth: mean over patches
-            states.append(x.mean(dim=1))  # (B, d_model)
+        output = torch.zeros(B, self.d_model, device=device)
 
-        # Stack to shape (B, L, d_model)
-        states_stack = torch.stack(states, dim=1)
-        B, L, D = states_stack.shape
-        device = states_stack.device
+        for l, layer in enumerate(self.layers):
+            x = layer(x)
+            z = x.mean(dim=1)
 
-        # ---- halting scores h_l (per layer, per sample) ----
-        # Use the first embedding dimension as in A-ViT (e = 0) :contentReference[oaicite:1]{index=1}
-        first_dim = states_stack[..., 0]          # (B, L)
-        h = torch.sigmoid(self.halt_gamma * first_dim + self.halt_beta)  # (B, L)
+            first_dim = z[:, 0]
+            h_l = torch.sigmoid(self.halt_gamma * first_dim - self.halt_center)
+            if l == L - 1:
+                h_l = torch.ones_like(h_l)
 
-        # Enforce halting at final layer: h_L = 1  :contentReference[oaicite:2]{index=2}
-        h[:, -1] = 1.0
+            active = (mask > 0.0)
+            h_eff = h_l * active.float()
+            c = c + h_eff
 
-        eps = self.halt_epsilon
+            reached = (c > 1.0 - eps) & active
+            not_reached = (c < 1.0 - eps) & active
 
-        # ---- ACT-style halting distribution over layers ----
-        cumul = torch.zeros(B, device=device)     # cumulative halting score
-        R     = torch.ones(B, device=device)      # remainder
-        ponder = torch.zeros(B, device=device)    # ρ (N + r) per sample
-        p = torch.zeros(B, L, device=device)      # halting distribution over layers
+            reached_f = reached.float()
+            not_reached_f = not_reached.float()
 
-        for l in range(L):
-            h_l = h[:, l]                         # (B,)
+            delta1 = z * (R * reached_f).unsqueeze(-1)
+            R = R - (h_eff * not_reached_f)
+            delta2 = z * (h_eff * not_reached_f).unsqueeze(-1)
 
-            # which samples are still "running" before this layer?
-            running = cumul < (1.0 - eps)         # (B,) boolean
-            h_eff = h_l * running.float()         # effective h only where running
+            output = output + delta1 + delta2
 
-            # add 1 per active layer (like ρ += m in Alg. 1) :contentReference[oaicite:3]{index=3}
-            ponder = ponder + running.float()
+            mask = (c < 1.0 - eps).float()
 
-            R_prev = R.clone()
+            # If you *really* want early break at inference, uncomment:
+            # if not mask.any():
+            #     break
 
-            # update cumulative halting
-            cumul = cumul + h_eff
-
-            # which samples are still running after this layer?
-            running_new = cumul < (1.0 - eps)
-            just_halted = running & (~running_new)
-
-            # update remainder: R <- R - h_l where still running
-            R = torch.where(running, R - h_eff, R)
-
-            # build halting probability p_l  (single-token version of Eq. 7) :contentReference[oaicite:4]{index=4}
-            p_l = torch.zeros(B, device=device)
-            # if l < N: p_l = h_l
-            p_l = torch.where(running_new, h_eff, p_l)
-            # if l == N: p_l = R_prev
-            p_l = torch.where(just_halted, R_prev, p_l)
-
-            p[:, l] = p_l
-
-        # add remainder r to ponder: ρ = N + r (Eq. 8) :contentReference[oaicite:5]{index=5}
-        ponder = ponder + R
-        ponder_loss = ponder.mean()  # scalar over batch
-
-        # ---- mean-field aggregation over depth (Eq. 9, adapted) :contentReference[oaicite:6]{index=6}
-        # to = sum_l p_l * state_l
-        out_rep = (p.unsqueeze(-1) * states_stack).sum(dim=1)  # (B, d_model)
-
-        logits = self.mlp_head(out_rep)  # (B, 2)
-        return logits, ponder_loss
+        logits = self.mlp_head(output)
+        return logits
