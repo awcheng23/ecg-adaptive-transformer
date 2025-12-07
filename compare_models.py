@@ -48,6 +48,9 @@ def main():
     base = load_metrics(BASELINE_METRICS)
     adap = load_metrics(ADAPTIVE_METRICS)
 
+    adap_flops_per_sample = adap.get("avg_flops_per_sample_depth_scaled", adap["avg_flops_per_sample"])
+    adap_total_flops = adap.get("total_est_flops_depth_scaled", adap.get("total_est_flops", None))
+
     base_train_flops = summarize_flops(BASELINE_TRAIN_FLOPS)
     adap_train_flops = summarize_flops(ADAPTIVE_TRAIN_FLOPS)
 
@@ -61,7 +64,7 @@ def main():
 
     print_section("Compute (Test)")
     print(f"Time/sample (ms): fixed={base['avg_time_normal_ms']:.4f}* (same both classes), adaptive normal={adap['avg_time_normal_ms']:.4f}, adaptive abnormal={adap['avg_time_abnormal_ms']:.4f}")
-    print(f"FLOPs/sample:     fixed={base['avg_flops_per_sample']:.3e}, adaptive={adap['avg_flops_per_sample']:.3e}")
+    print(f"FLOPs/sample:     fixed={base['avg_flops_per_sample']:.3e}, adaptive (depth-scaled)={adap_flops_per_sample:.3e}")
     print(f"FLOPs/sample by class (adaptive): normal={adap['flops_per_sample_normal']:.3e}, abnormal={adap['flops_per_sample_abnormal']:.3e}, ratio={adap['flops_ratio_abnormal_to_normal']:.2f}x")
 
     print_section("Depth / Early Halting (Test)")

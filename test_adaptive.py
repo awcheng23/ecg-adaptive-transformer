@@ -251,6 +251,9 @@ def evaluate_adaptive():
     avg_flops_per_batch = np.mean(flops_per_batch)
     avg_flops_per_sample_full = avg_flops_per_batch / batch_size  # full-depth cost
     total_est_flops_full = avg_flops_per_batch * len(test_loader)
+    depth_scaled_flops_per_sample = avg_flops_per_sample_full * (all_depths / num_layers)
+    avg_flops_per_sample_depth_scaled = float(depth_scaled_flops_per_sample.mean())
+    total_est_flops_depth_scaled = avg_flops_per_sample_depth_scaled * len(all_depths)
     
     print(f"\n6. COMPUTATIONAL EFFICIENCY (Adaptive):")
     print(f"   Avg inference time per batch ({batch_size} samples): {avg_inference_time*1000:.2f} ms")
@@ -259,6 +262,8 @@ def evaluate_adaptive():
     print(f"   Avg FLOPs per batch (full depth): {avg_flops_per_batch:.2e}")
     print(f"   Avg FLOPs per sample (full depth): {avg_flops_per_sample_full:.2e}")
     print(f"   Total est. FLOPs over test set (full depth): {total_est_flops_full:.2e}")
+    print(f"   Avg FLOPs per sample (depth-scaled): {avg_flops_per_sample_depth_scaled:.2e}")
+    print(f"   Total est. FLOPs over test set (depth-scaled): {total_est_flops_depth_scaled:.2e}")
     
     # 7. Per-class timing
     normal_mask = all_labels == 0
@@ -361,6 +366,8 @@ def evaluate_adaptive():
         "avg_flops_per_batch": float(avg_flops_per_batch),
         "avg_flops_per_sample": float(avg_flops_per_sample_full),
         "total_est_flops": float(total_est_flops_full),
+        "avg_flops_per_sample_depth_scaled": float(avg_flops_per_sample_depth_scaled),
+        "total_est_flops_depth_scaled": float(total_est_flops_depth_scaled),
         # Per-class timing
         "avg_time_normal_ms": float(avg_time_normal * 1000),
         "median_time_normal_ms": float(median_time_normal * 1000),
