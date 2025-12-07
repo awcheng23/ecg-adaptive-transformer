@@ -17,8 +17,8 @@ def main():
         pat_segments, pat_segment_ID = get_patients_segments(
             ID=pid,
             dt_path=data_path,
-            window_sec=50.0,
-            stride_sec=2.5,
+            window_sec=30.0,
+            stride_sec=10,
             target_fs=100.0,
         )
 
@@ -37,31 +37,37 @@ def main():
         val_size=0.15,
     )
 
+    print(f"Train: 0: {len(train_dist[0])}, 1: {len(train_dist[1])}, Val: 0: {len(val_dist[0])}, 1: {len(val_dist[1])}, Test: 0: {len(test_dist[0])}, 1: {len(test_dist[1])}")
+
+    tr0, tr1 = len(train_dist[0]), len(train_dist[1])
+    v0, v1 = len(val_dist[0]), len(val_dist[1])
+    te0, te1 = len(test_dist[0]), len(test_dist[1])
+
     segments_train, segment_IDs_train = get_sampled_data(
-        segments, segment_IDs, train_dist, num_samples=8680, augment=True
+        segments, segment_IDs, train_dist, num_samples=max(tr0,tr1), augment=True
     )
     segments_val, segment_IDs_val = get_sampled_data(
-        segments, segment_IDs, val_dist, num_samples=1302
+        segments, segment_IDs, val_dist, num_samples=min(v0,v1)
     )
     segments_test, segment_IDs_test = get_sampled_data(
-        segments, segment_IDs, test_dist, num_samples=1302
+        segments, segment_IDs, test_dist, num_samples=min(te0,te1)
     )
 
     print("Completed data sampling")
     print(f"Train: {len(segments_train)}, Val: {len(segments_val)}, Test: {len(segments_test)}")
 
     np.savez_compressed(
-        "data/db_train_anomaly_ind.npz",
+        "data/db_train_anomaly_30_10.npz",
         segments=segments_train,
         labels=segment_IDs_train,
     )
     np.savez_compressed(
-        "data/db_val_anomaly_ind.npz",
+        "data/db_val_anomaly_30_10.npz",
         segments=segments_val,
         labels=segment_IDs_val,
     )
     np.savez_compressed(
-        "data/db_test_anomaly_ind.npz",
+        "data/db_test_anomaly_30_10.npz",
         segments=segments_test,
         labels=segment_IDs_test,
     )
