@@ -16,6 +16,7 @@ import seaborn as sns
 
 from data_dir.datasets import ECGDataset
 from models.fixed_transformer import CNNTransformer
+from thop import profile
 
 
 def evaluate_baseline():
@@ -89,13 +90,21 @@ def evaluate_baseline():
     all_probs = []  # probability of class 1 (abnormal)
     all_labels = []
     inference_times = []  # time per batch
+    flops_per_batch = []  # estimated FLOPs per test batch
     
     print("\nRunning inference on test set...")
     
+    flops_cached = None  # reuse single FLOPs measurement for fixed shapes
     with torch.no_grad():
         for batch_idx, (x, y) in enumerate(test_loader):
             x = x.to(device)
             y = y.to(device)
+
+            # Estimate FLOPs once on a representative batch; constant for fixed model/input shapes.
+            if flops_cached is None:
+                flops_val, _ = profile(model, inputs=(x,), verbose=False)
+                flops_cached = flops_val
+            flops_per_batch.append(flops_cached)
             
             # Inference
             import time
@@ -171,11 +180,18 @@ def evaluate_baseline():
     avg_inference_time = np.mean(inference_times)
     total_inference_time = np.sum(inference_times)
     throughput = len(test_ds) / total_inference_time  # samples/sec
+
+    avg_flops_per_batch = np.mean(flops_per_batch)
+    avg_flops_per_sample = avg_flops_per_batch / batch_size
+    total_est_flops = avg_flops_per_batch * len(test_loader)
     
     print(f"\n6. COMPUTATIONAL EFFICIENCY (Baseline):")
     print(f"   Avg inference time per batch ({batch_size} samples): {avg_inference_time*1000:.2f} ms")
     print(f"   Total inference time: {total_inference_time:.2f} seconds")
     print(f"   Throughput: {throughput:.1f} samples/second")
+    print(f"   Avg FLOPs per batch: {avg_flops_per_batch:.2e}")
+    print(f"   Avg FLOPs per sample: {avg_flops_per_sample:.2e}")
+    print(f"   Total est. FLOPs over test set: {total_est_flops:.2e}")
     print(f"   (Adaptive halting will improve these metrics)")
     
     # 7. Per-class performance
@@ -212,6 +228,9 @@ def evaluate_baseline():
         "tp": int(tp),
         "avg_inference_time_ms": avg_inference_time * 1000,
         "throughput": throughput,
+        "avg_flops_per_batch": float(avg_flops_per_batch),
+        "avg_flops_per_sample": float(avg_flops_per_sample),
+        "total_est_flops": float(total_est_flops),
         "precision_per_class": [float(precision_0), float(precision_1)],
         "recall_per_class": [float(recall_0), float(recall_1)],
         "f1_per_class": [float(f1_0), float(f1_1)],
