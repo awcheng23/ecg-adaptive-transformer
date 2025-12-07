@@ -295,53 +295,6 @@
 		</div>
 	</div>
 
-	<!-- <div class="content-margin-container" id="intro">
-		<div class="margin-left-block">
-		</div>
-
-		<div class="main-content-block">
-			<h1>Introduction</h1>
-
-			<p>
-				Electrocardiograms (ECGs) are a cornerstone of cardiac diagnostics, widely used to detect arrhythmias
-				such as atrial fibrillation, premature ventricular contractions, and ST-segment deviations. In recent
-				years, deep learning models—particularly convolutional and transformer architectures—have demonstrated
-				high accuracy in ECG classification. However, most of these models process all input segments uniformly,
-				applying the same computational depth regardless of signal complexity. As a result, clean or simple ECG
-				segments are often over-processed, while complex or noisy segments may not receive sufficient analysis.
-				This “one-size-fits-all” approach is inefficient, particularly in contexts where energy and latency are
-				constrained, such as wearable monitors or bedside diagnostic devices.
-			</p>
-
-			<img src="./images/transformer_intro.jpg" width=600px />
-
-			<p>
-				Adaptive computation presents a promising alternative. By allowing models to dynamically decide how much
-				processing to allocate to each input, adaptive-depth architectures can potentially reduce unnecessary
-				computation while maintaining accuracy. In natural language processing and computer vision, mechanisms
-				such as Adaptive Computation Time (ACT) and adaptive halting in transformers have demonstrated that
-				models can allocate more computation to difficult or ambiguous inputs, achieving efficiency gains and
-				providing interpretable insights into input complexity.
-			</p>
-
-			<p>
-				Despite these advances, adaptive computation remains largely unexplored in the context of biomedical
-				signals. ECGs are inherently variable: rhythms differ in morphology, duration, and susceptibility to
-				noise. An adaptive model could, in principle, allocate fewer layers to simple sinus rhythms while using
-				deeper processing for irregular or artifact-laden segments. This could not only improve computational
-				efficiency but also reveal interpretable patterns linking model behavior to clinical signal
-				characteristics.
-			</p>
-
-			<p>
-				This project investigates whether an adaptive halting transformer can dynamically allocate computation
-				across ECG segments, comparing it to a fixed-depth baseline. Specifically, we examine whether
-				adaptive-depth models can reduce average computation without sacrificing diagnostic accuracy, whether
-				computation correlates with input difficulty or noise, and whether depth allocation provides insight
-				into local versus global feature usage. By addressing these questions, we aim to provide a
-				framework-level understanding of resource-aware deep learning for ECG classification.
-			</p>
-		</div> -->
 	<div class="content-margin-container" id="intro">
 		<div class="margin-left-block">
 		</div>
@@ -473,11 +426,17 @@
 		<div class="margin-left-block">
 		</div>
 		<div class="main-content-block">
-			<h1>Another section</h1>
-			In this section we embed a video:
-			<video class='my-video' loop autoplay muted style="width: 725px">
-				<source src="./images/mtsh.mp4" type="video/mp4">
-			</video>
+			<h1>Methodology</h1>
+
+			<i>Data Processing:</i><br><br>
+			All experiments use the MIT-BIH Arrhythmia Database, where each patient record consists of a continuous ECG
+			waveform and beat-level annotations. Our preprocessing pipeline standardizes these signals before model
+			training. For each patient, we load the raw ECG waveform and its associated annotations. A 0.5 - 45 Hz
+			Butterworth bandpass filter removes baseline wander and high-frequency noise. This is applied in the
+			original sampling rate to preserve the alignment between waveform and annotated beat locations. Each entire
+			patient recording is normalized to the range [0,1]. Normalization is performed before
+			segmentation, ensuring that windows from the same record share a consistent amplitude scale.
+
 		</div>
 		<div class="margin-right-block">
 			A caption for the video could go here.
