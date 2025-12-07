@@ -1,5 +1,5 @@
 import numpy as np
-from data_dir.process_mitdb import (
+from data_dir.process_mitdb_separate import (
     get_patients_segments,
     split_train_val_test_by_patient,
     get_sampled_data,
@@ -51,17 +51,17 @@ def main():
     print(f"Train: {len(segments_train)}, Val: {len(segments_val)}, Test: {len(segments_test)}")
 
     np.savez_compressed(
-        "data/db_train_anomaly.npz",
+        "data/db_train_anomaly_ind.npz",
         segments=segments_train,
         labels=segment_IDs_train,
     )
     np.savez_compressed(
-        "data/db_val_anomaly.npz",
+        "data/db_val_anomaly_ind.npz",
         segments=segments_val,
         labels=segment_IDs_val,
     )
     np.savez_compressed(
-        "data/db_test_anomaly.npz",
+        "data/db_test_anomaly_ind.npz",
         segments=segments_test,
         labels=segment_IDs_test,
     )
