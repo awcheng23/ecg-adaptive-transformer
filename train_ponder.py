@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from data_dir.datasets import ECGDataset
-from models.adaptive_transformer import CNNTransformer  # adaptive halting version
+from models.adaptive_transformer import AdaptiveCNNTransformer  # adaptive halting version
 
 from thop import profile
 
@@ -73,7 +73,7 @@ def main():
     # -----------------------
     # model
     # -----------------------
-    model = CNNTransformer(
+    model = AdaptiveCNNTransformer(
         seq_len=seq_len,
         patch_len=patch_len,
         d_model=d_model,
