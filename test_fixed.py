@@ -224,6 +224,17 @@ def evaluate_baseline():
     print(f"      Median time per sample: {median_time_abnormal*1000:.4f} ms")
     print(f"      Count: {len(abnormal_times)}")
     print(f"   (Adaptive halting should be faster on normal samples)")
+
+    # 6c. Per-class FLOPs (baseline is fixed-depth, so same per sample)
+    flops_per_sample_normal = avg_flops_per_sample
+    flops_per_sample_abnormal = avg_flops_per_sample
+    total_flops_normal = flops_per_sample_normal * len(normal_times)
+    total_flops_abnormal = flops_per_sample_abnormal * len(abnormal_times)
+
+    print(f"\n6c. PER-CLASS FLOPS (Fixed depth):")
+    print(f"   FLOPs per sample (both classes): {avg_flops_per_sample:.2e}")
+    print(f"   Total FLOPs normal:   {total_flops_normal:.2e}")
+    print(f"   Total FLOPs abnormal: {total_flops_abnormal:.2e}")
     
     # 7. Per-class performance
     print(f"\n7. PER-CLASS PERFORMANCE:")
@@ -271,6 +282,10 @@ def evaluate_baseline():
         "avg_time_abnormal_ms": float(avg_time_abnormal * 1000),
         "median_time_abnormal_ms": float(median_time_abnormal * 1000),
         "count_abnormal": int(len(abnormal_times)),
+        "flops_per_sample_normal": float(flops_per_sample_normal),
+        "flops_per_sample_abnormal": float(flops_per_sample_abnormal),
+        "total_flops_normal": float(total_flops_normal),
+        "total_flops_abnormal": float(total_flops_abnormal),
     }
     
     torch.save(results, "checkpoints/baseline_metrics.pt")
