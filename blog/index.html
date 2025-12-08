@@ -429,7 +429,9 @@
 			<h1>Methodology</h1>
 
 			<i>Data Processing:</i><br><br>
-			All experiments use the MIT-BIH Arrhythmia Database, where each patient record consists of a continuous ECG
+			All experiments use the MIT-BIH Arrhythmia Database 
+            ([<a href="#ref_physionet_afdb">4</a>]), 
+            where each patient record consists of a continuous ECG
 			waveform and beat-level annotations. Our preprocessing pipeline standardizes these signals before model
 			training. For each patient, we load the raw ECG waveform and its associated annotations. A 0.5–45 Hz
 			Butterworth bandpass filter removes baseline wander and high-frequency noise. This is applied in the
@@ -551,6 +553,13 @@
 				Akan, et al., 2024<br><br>
 				<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
 					Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
+                <a id="ref_moody_mark_1983"></a>[X] <a href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
+                    A new method for detecting atrial fibrillation using RR intervals</a>,
+                    Moody and Mark, 1983<br><br>
+                <a id="ref_physionet_afdb"></a>[6] <a href="https://physionet.org/content/afdb/1.0.0/">
+                    MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
+
+
 			</div>
 		</div>
 		<div class="margin-right-block">
