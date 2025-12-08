@@ -233,6 +233,19 @@
 			width: 50px;
 			/* Optional: Adds space between the div and the paragraph */
 		}
+
+		.section-divider {
+			height: 1px;
+			background-color: #ccc;
+			margin: 32px 0 12px 0;
+		}
+
+		.section-title {
+			font-size: 24px;
+			font-weight: 600;
+			margin: 12px 0 16px 0;
+			letter-spacing: -0.2px;
+		}
 	</style>
 
 	<title>Adaptive-Depth Transformers for Efficient and Robust ECG Classification</title>
@@ -270,7 +283,7 @@
 		</div>
 	</div>
 
-	<div class="content-margin-container" id="intro">
+	<div class="content-margin-container" id="hero">
 		<div class="margin-left-block">
 			<!-- table of contents here -->
 			<div style="position:fixed; max-width:inherit; top:max(20%,120px)">
@@ -303,7 +316,8 @@
 
 			The source code for the work described in this study can be found <a href="">XXXXXXX ADD
 				XXXXXXX.</a><br><br>
-			<h1>Introduction</h1>
+			<div class="section-divider"></div>
+			<h1 class="section-title">Introduction</h1>
 			Electrocardiograms (ECGs) are a cornerstone of cardiac diagnostics, widely used to detect arrhythmias
 			such as atrial fibrillation, premature ventricular contractions, and ST-segment deviations. In recent
 			years, deep learning models—particularly convolutional and transformer architectures—have demonstrated
@@ -363,7 +377,8 @@
 		<div class="margin-left-block"></div>
 
 		<div class="main-content-block">
-			<h1>Prior Work</h1>
+			<div class="section-divider"></div>
+			<h1 class="section-title">Prior Work</h1>
 
 			Automated ECG classification has evolved significantly with deep learning, beginning with convolutional and
 			recurrent architectures and moving toward transformer-based approaches. Early methods typically applied
@@ -426,144 +441,240 @@
 		<div class="margin-left-block">
 		</div>
 		<div class="main-content-block">
-			<h1>Methodology</h1>
+			<div class="section-divider"></div>
+			<h1 class="section-title" id="methodology">Methodology</h1>
 
-			<i>Data Processing:</i><br><br>
+			<i>Dataset and Preprocessing:</i><br><br>
 			All experiments use the MIT-BIH Atrial Fibrillation Database
-            ([<a href="#ref_moody_mark_1983">5</a>], [<a href="#ref_physionet_afdb">6</a>]).
-            Each record contains approximately ten hours of two-channel ECG sampled at 250 Hz, accompanied by rhythm annotations indicating AFIB (atrial fibrillation), AFL (atrial flutter), J (AV junctional rhythm, and N (used to indicate all other rhythms). We load the raw ECG waveform and its associated annotations. A 0.5–45 Hz
-			Butterworth bandpass filter removes baseline wander and high-frequency noise. This is applied in the
-			original sampling rate to preserve the alignment between waveform and annotated beat locations. Each entire
-			patient recording is normalized to the range [0,1]. Normalization is performed before
-			segmentation, ensuring that windows from the same record share a consistent amplitude scale.<br><br>
+			([<a href="#ref_moody_mark_1983">5</a>], [<a href="#ref_physionet_afdb">6</a>]),
+			comprising 25 long-term ECG recordings, each approximately 10 hours in duration, sampled at 250 Hz. Each
+			record contains two ECG channels accompanied by beat-level rhythm annotations indicating normal sinus rhythm
+			(N), atrial fibrillation (AFIB), atrial flutter (AFL), and AV junctional rhythm (J). We use only the first
+			channel (MLII or V1 depending on record) for all experiments.<br><br>
 
-			We explore two segmentation strategies. The first uses fixed 50-second sliding windows with 2.5-second
-			stride, downsampled to 100 Hz, yielding 5000-sample segments. Windows are labeled as normal (class 0) if all
-			annotated beats within them are marked 'N', and abnormal (class 1) if at least one beat is non-normal. The
-			second approach extracts beat-centered segments: for each annotated beat, we extract a 2.5-second window
-			centered on that beat (250 samples at 100 Hz), labeled directly by the beat's annotation symbol. This yields
-			~103,000 individual beat segments. Both datasets are split 70/15/15 into train/validation/test, with class
-			balancing via upsampling the minority class to ensure equal representation.<br><br>
+			Preprocessing consists of three stages. First, we apply a 4th-order Butterworth bandpass filter with cutoff
+			frequencies 0.5–45 Hz to remove baseline wander and high-frequency noise, applied at the native 250 Hz
+			sampling rate to preserve temporal alignment with beat annotations. Second, each entire recording is min-max
+			normalized to the range [0,1], ensuring amplitude consistency within each patient record while preserving
+			inter-patient variability. Third, we segment the continuous ECG into non-overlapping fixed-length 30-second
+			windows with a
+			30-second stride. Each 30-second window at 250 Hz contains 7500 samples. Windows are labeled as normal
+			(class
+			0) if all annotated beats within the window are marked 'N', and abnormal (class 1) if at least one beat
+			carries an AFIB, AFL, or J annotation. This produces a binary classification task distinguishing normal
+			sinus rhythm from arrhythmic episodes.<br><br>
 
-			<i>Baseline Architecture (Fixed-Depth CNN-Transformer):</i><br><br>
-			Our baseline model processes ECG segments through a two-stage CNN followed by a fixed-depth transformer
-			encoder. The first convolutional layer applies 32 filters with a 7×1 kernel to extract local temporal
-			features, followed by batch normalization and ReLU activation. The second convolutional layer performs
-			patchification: using a kernel size and stride equal to the patch length (50 for window-based data, 25 for
-			beat-based data), it reduces the sequence into non-overlapping patches and projects them into a
-			128-dimensional
-			embedding space. For window-based segments (5000 samples), this yields 100 patches; for beat-based segments
-			(250 samples), it yields 10 patches.<br><br>
+			The dataset is split 70/15/15 by patient into training, validation, and test sets, ensuring that no patient
+			appears in multiple splits. This yields 19,672 training windows, 4,216 validation windows, and 4,216 test
+			windows. The class distribution is imbalanced (~60% normal, ~40% abnormal), so we compute balanced class
+			weights inversely proportional to class frequencies and apply them during training via weighted
+			cross-entropy loss. No upsampling or data augmentation is performed, preserving the natural class
+			distribution in all sets.<br><br>
 
-			After CNN embedding, sinusoidal positional encodings are added to each patch. The resulting sequence is then
-			processed by a stack of 4 transformer encoder layers. Each layer consists of multi-head self-attention (2
-			heads,
-			64-dimensional keys/queries/values per head) followed by a position-wise feedforward network (256 hidden
-			units)
-			with residual connections and layer normalization. The transformer captures both local dependencies (within
-			nearby patches) and global context (across the entire segment). After the final transformer layer, we
-			perform
-			mean pooling over all patches to obtain a single 128-dimensional global representation. This representation
-			is
-			passed through a two-layer MLP classification head (128 → 128 with ReLU and dropout, then 128 → 2) to
-			produce
-			logits for binary classification (normal vs. abnormal).<br><br>
+			<hr>
+			<h1>Fixed-Depth Baseline Model</h1>
 
-			The fixed-depth baseline applies the same computational graph to every input: all segments pass through all
-			4
-			transformer layers regardless of their complexity, noise level, or confidence. This uniform processing
-			provides
-			a strong performance benchmark but offers no adaptation to input difficulty.<br><br>
+			Our baseline is a fixed-depth hybrid architecture combining convolutional patch embedding with a standard
+			transformer encoder. The model consists of four components: (1) CNN-based patch embedding, (2) positional
+			encoding, (3) a stack of 4 transformer encoder layers, and (4) an MLP classification head.<br><br>
 
-			<i>Adaptive-Depth Transformer Architecture:</i><br><br>
-			The adaptive model uses the same CNN patch embedding and positional encoding as the baseline, but replaces
-			the
-			fixed transformer stack with an adaptive halting mechanism inspired by Adaptive Computation Time (ACT) [<a
-				href="#ref_graves">4</a>]. Instead of
-			processing all inputs through all layers, the model dynamically decides when to stop processing each sample
-			based on a learned halting criterion.<br><br>
+			<b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is first processed by a 1D
+			convolutional layer with 32 filters, kernel size 7, stride 1, and padding 3, followed by batch normalization
+			and ReLU activation. This extracts local temporal features while preserving sequence length. A second 1D
+			convolutional layer with 128 filters, kernel size 75, and stride 75 performs non-overlapping patchification,
+			reducing the 7500-sample sequence into 100 patches, each represented by a 128-dimensional embedding.
+			Formally, the patchification step computes <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
+			corresponds to a 75-sample (0.3-second) temporal patch.<br><br>
 
-			At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after applying self-attention and feedforward operations,
-			we extract a global representation <i>z</i><sub><i>l</i></sub> by mean-pooling over all patches. We then
-			compute a halting probability <i>h</i><sub><i>l</i></sub> = σ(γ · <i>z</i><sub><i>l</i></sub>[0] − β), where
-			σ is the sigmoid function, <i>z</i><sub><i>l</i></sub>[0] is the first dimension of the global embedding,
-			and γ (gamma) and β (center) are learned scalar parameters. This halting score represents the model's
-			confidence that it has gathered sufficient information to classify the input.<br><br>
+			<b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding to inject
+			temporal ordering information:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				PE(<i>pos</i>, 2<i>i</i>) = sin(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
+				PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
+			</div>
+			<br>
+			where <i>pos</i> ∈ {0, ..., 99} is the patch index and <i>i</i> ∈ {0, ..., 63} indexes the embedding
+			dimension. The resulting patch sequence <i>Z</i><sub>0</sub> + PE serves as input to the
+			transformer.<br><br>
 
-			We maintain per-sample state variables: cumulative halting mass <i>c</i> (initially 0), remainder mass
-			<i>R</i> (initially 1), and an active mask indicating whether processing continues. At each layer, we add
-			<i>h</i><sub><i>l</i></sub> to <i>c</i>. If <i>c</i> exceeds 1 − ε (where ε = 0.05 is a small threshold),
-			the sample halts: we accumulate the layer's output weighted by the remainder <i>R</i> (δ<sub>1</sub> =
-			<i>R</i> · <i>z</i><sub><i>l</i></sub>), and the sample contributes no further computation. If <i>c</i>
-			remains below 1 − ε, processing continues: we accumulate the layer's output weighted by
-			<i>h</i><sub><i>l</i></sub> (δ<sub>2</sub> = <i>h</i><sub><i>l</i></sub> · <i>z</i><sub><i>l</i></sub>),
-			and update the remainder as <i>R</i> ← <i>R</i> − <i>h</i><sub><i>l</i></sub>. The final layer forces all
-			remaining active samples to halt (<i>h</i><sub>3</sub> = 1).<br><br>
+			<b>Transformer Encoder:</b> The model applies 4 identical transformer encoder layers sequentially. Each
+			layer consists of multi-head self-attention (2 heads, 64-dimensional key/query/value projections per head,
+			total dimension 128) followed by a position-wise feedforward network (FFN) with hidden dimension 256. Each
+			sub-layer uses residual connections and layer normalization. Dropout (rate 0.1) is applied after attention
+			and FFN layers. Formally, for layer <i>l</i>, the transformation is:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
+				MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
+				<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
+				FFN(<i>Z</i>'<sub><i>l</i></sub>))<br>
+			</div>
+			<br>
+			After layer 4, we obtain <i>Z</i><sub>4</sub> ∈ ℝ<sup>100×128</sup>.<br><br>
 
-			The model's output representation is the sum of all weighted layer contributions: <b>output</b> =
-			Σ<sub><i>l</i></sub> (δ<sub>1</sub> + δ<sub>2</sub>). This is passed to the same MLP classification head as
-			the baseline. The ponder cost ρ for each sample is computed as the number of layers executed plus the final
-			remainder used, approximating the effective "depth" that sample traversed. During training, we minimize a
-			composite loss: <i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[ρ], where
-			<i>L</i><sub>task</sub> is cross-entropy classification loss and α<sub>p</sub> = 5×10<sup>−4</sup> is a
-			hyperparameter controlling the penalty for computation. This encourages the model to halt early on simple
-			inputs while allowing deeper processing for complex or ambiguous cases.<br><br>
+			<b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain a global representation
+			<i>z</i> = (1/100) Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This is passed
+			through a two-layer MLP: first a linear layer (128 → 128) with ReLU and dropout (0.1), then a final linear
+			layer (128 → 2) producing logits for binary classification. The model is trained with weighted cross-entropy
+			loss:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				<i>L</i><sub>task</sub> = − Σ<sub><i>c</i></sub> <i>w</i><sub><i>c</i></sub> <i>y</i><sub><i>c</i></sub>
+				log σ(<i>f</i>(<i>x</i>)<sub><i>c</i></sub>)<br>
+			</div>
+			<br>
+			where <i>w</i><sub><i>c</i></sub> are balanced class weights, <i>y</i> is the one-hot label, and σ is
+			softmax. We use AdamW optimizer with learning rate 3×10<sup>−4</sup>, weight decay 10<sup>−4</sup>, and
+			gradient clipping at norm 1.0. Training proceeds for 20 epochs with batch size 32.<br><br>
 
-			Critically, the halting decision is differentiable and learned end-to-end. The model autonomously discovers
-			which ECG segments require minimal processing (e.g., clean sinus rhythms) and which demand more computation
-			(e.g., noisy or arrhythmic patterns). This provides both computational efficiency and interpretability: by
-			analyzing the distribution of halting depths, we can infer which types of inputs the model finds more
-			challenging.<br><br>
+			The fixed-depth baseline applies all 4 transformer layers to every input, providing a strong but
+			computationally uniform baseline. Total parameters: ~240k trainable.<br><br>
 
-		</div>
-		<div class="margin-right-block">
-			A caption for the video could go here.
-		</div>
-	</div>
+			<hr>
+			<h1>Adaptive-Depth Transformer Model</h1>
 
-	<div class="content-margin-container" id="implications_and_limitations">
-		<div class="margin-left-block">
-		</div>
-		<div class="main-content-block">
-			<h1>Implications and limitations</h1>
-			Let's end with some discussion of the implications and limitations.
-		</div>
-		<div class="margin-right-block">
-		</div>
-	</div>
+			The adaptive model shares the same CNN patch embedding, positional encoding, and classification head as the
+			baseline, but replaces the fixed transformer stack with an Adaptive Computation Time (ACT)-style halting
+			mechanism [<a href="#ref_graves">4</a>]. This enables per-sample, per-layer halting decisions, allowing
+			simple inputs to exit early while complex inputs traverse more layers.<br><br>
 
-	<div class="content-margin-container" id="citations">
-		<div class="margin-left-block">
-		</div>
-		<div class="main-content-block">
-			<div class='citation' id="references" style="height:auto"><br>
-				<span style="font-size:16px">References:</span><br><br>
-				<a id="ref_1"></a>[1] <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">
-					ECG-TransCovNet: A hybrid transformer model for accurate arrhythmia detection using
-					Electrocardiogram signals</a>,
-				Shah, et al., 2024<br><br>
-				<a id="ref_ullah"></a>[2] <a href="https://arxiv.org/abs/2005.06902">
-					Classification of Arrhythmia by Using Deep Learning with 2-D ECG Spectral Image Representation</a>,
-				Ullah, et al., 2020<br><br>
-				<a id="ref_akan"></a>[3] <a href="https://arxiv.org/abs/2401.05434">
+			<b>Halting Mechanism:</b> At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after applying self-attention
+			and feedforward transformations, we compute a global representation via mean pooling:
+			<i>z</i><sub><i>l</i></sub> = (1/100) Σ<sub><i>p</i></sub> <i>Z</i><sub><i>l</i></sub>[<i>p</i>] ∈
+			ℝ<sup>128</sup>. The halting probability for layer <i>l</i> is computed as:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				<i>h</i><sub><i>l</i></sub> = σ(γ · <i>z</i><sub><i>l</i></sub>[0] − β)
+			</div>
+			<br>
+			where σ(·) is the sigmoid function, <i>z</i><sub><i>l</i></sub>[0] is the first scalar dimension of the
+			global embedding, and γ (gamma) and β (center) are learned scalar parameters initialized to 1.0. This scalar
+			halting score represents the model's confidence that sufficient processing has occurred. The final layer
+			(layer 3) forces halting by setting <i>h</i><sub>3</sub> = 1.<br><br>
 
-					ECGformer: Leveraging transformer for ECG heartbeat arrhythmia classification</a>,
-				Akan, et al., 2024<br><br>
-				<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
-					Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
-                <a id="ref_moody_mark_1983"></a>[X] <a href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
-                    A new method for detecting atrial fibrillation using RR intervals</a>,
-                    Moody and Mark, 1983<br><br>
-                <a id="ref_physionet_afdb"></a>[6] <a href="https://physionet.org/content/afdb/1.0.0/">
-                    MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
+			<b>ACT State Updates:</b> For each sample, we maintain three state variables: cumulative halting mass
+			<i>c</i> (initially 0), remainder mass <i>R</i> (initially 1), and an active mask (initially 1). At each
+			layer, we update:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				<i>c</i> ← <i>c</i> + <i>h</i><sub><i>l</i></sub> · mask<br>
+				reached = (<i>c</i> ≥ 1 − ε) ∧ (mask = 1)<br>
+				not_reached = (<i>c</i>
+				< 1 − ε) ∧ (mask=1)<br>
+			</div>
+			<br>
+			where ε = 0.05 is a small threshold. Samples are classified into two cases:<br><br>
 
+			<b>Case 1 (Halted):</b> If reached = 1, the sample halts at this layer. We accumulate the layer's output
+			weighted by the remainder:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				δ<sub>1</sub> = <i>R</i> · <i>z</i><sub><i>l</i></sub>
+			</div>
+			<br>
+			The ponder cost ρ increments by 1 (for this layer) plus <i>R</i> (for the fractional remaining
+			computation).<br><br>
+
+			<b>Case 2 (Continuing):</b> If not_reached = 1, the sample continues processing. We accumulate the
+			output weighted by the halting probability:
+			<br><br>
+			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+				δ<sub>2</sub> = <i>h</i><sub><i>l</i></sub> · <i>z</i><sub><i>l</i></sub><br>
+				<i>R</i> ← <i>R</i> − <i>h</i><sub><i>l</i></sub><br>
+				mask ← 𝟙(<i>c</i>
+				< 1 − ε) </div>
+					<br>
+					The ponder cost ρ increments by 1 (one full layer executed).<br><br>
+
+					The final output representation is the weighted sum of all layer contributions:
+					<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<b>output</b> = Σ<sub><i>l</i>=0</sub><sup>3</sup> (δ<sub>1,<i>l</i></sub> +
+						δ<sub>2,<i>l</i></sub>)
+					</div>
+					<br>
+					This output is passed to the same MLP classification head as the baseline to produce logits.<br><br>
+
+					<b>Training Objective:</b> The adaptive model is trained with a composite loss combining task
+					accuracy and computational cost:
+					<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[ρ]
+					</div>
+					<br>
+					where <i>L</i><sub>task</sub> is the weighted cross-entropy loss (same as baseline), ρ is the
+					per-sample ponder cost (effective depth in layers), and α<sub>p</sub> = 5×10<sup>−4</sup> is the
+					ponder loss weight. The ponder term encourages the model to halt early when possible, balancing
+					accuracy against computation. The halting parameters γ and β are learned via backpropagation along
+					with all other model weights.<br><br>
+
+					During inference, each sample adaptively traverses a variable number of layers (between 1 and 4),
+					with early halting on simple inputs reducing both FLOPs and latency. We track the per-sample depth ρ
+					to analyze computational allocation across input classes and signal complexity. The adaptive model
+					has the same parameter count as the baseline (~240k), but effective computation per sample is
+					reduced on average.<br><br>
+
+					<b>Evaluation Metrics:</b> For both models, we report test accuracy, per-class accuracy (normal vs.
+					abnormal), and test loss. For the adaptive model, we additionally track: (1) average depth ρ overall
+					and per class, (2) median and standard deviation of depth per class, (3) fraction of samples
+					reaching full depth (ρ ≥ 4), (4) effective FLOPs per sample (full-depth FLOPs × ρ/4), and (5)
+					per-sample inference time. These metrics enable hypothesis testing regarding whether the model
+					allocates less computation to normal samples and more to abnormal samples, whether computational
+					savings are achieved without accuracy loss, and whether depth correlates with input
+					difficulty.<br><br>
 
 			</div>
+			<div class="margin-right-block">
+				A caption for the video could go here.
+			</div>
 		</div>
-		<div class="margin-right-block">
-			<!-- margin notes for reference block here -->
+
+		<div class="content-margin-container" id="implications_and_limitations">
+			<div class="margin-left-block">
+			</div>
+			<div class="main-content-block">
+				<h1>Implications and limitations</h1>
+				Let's end with some discussion of the implications and limitations.
+			</div>
+			<div class="margin-right-block">
+			</div>
 		</div>
-	</div>
+
+		<div class="content-margin-container" id="citations">
+			<div class="margin-left-block">
+			</div>
+			<div class="main-content-block">
+				<div class='citation' id="references" style="height:auto"><br>
+					<span style="font-size:16px">References:</span><br><br>
+					<a id="ref_1"></a>[1] <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">
+						ECG-TransCovNet: A hybrid transformer model for accurate arrhythmia detection using
+						Electrocardiogram signals</a>,
+					Shah, et al., 2024<br><br>
+					<a id="ref_ullah"></a>[2] <a href="https://arxiv.org/abs/2005.06902">
+						Classification of Arrhythmia by Using Deep Learning with 2-D ECG Spectral Image
+						Representation</a>,
+					Ullah, et al., 2020<br><br>
+					<a id="ref_akan"></a>[3] <a href="https://arxiv.org/abs/2401.05434">
+
+						ECGformer: Leveraging transformer for ECG heartbeat arrhythmia classification</a>,
+					Akan, et al., 2024<br><br>
+					<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
+						Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
+					<a id="ref_moody_mark_1983"></a>[5] <a
+						href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
+						A new method for detecting atrial fibrillation using RR intervals</a>,
+					Moody and Mark, 1983<br><br>
+					<a id="ref_physionet_afdb"></a>[6] <a href="https://physionet.org/content/afdb/1.0.0/">
+						MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
+
+
+				</div>
+			</div>
+			<div class="margin-right-block">
+				<!-- margin notes for reference block here -->
+			</div>
+		</div>
 
 </body>
 
