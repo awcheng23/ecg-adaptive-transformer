@@ -14,6 +14,10 @@ from data_dir.process_afdb import (
     get_sampled_data,
 )
 
+# Set random seed for reproducibility
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
+
 
 def main():
     """

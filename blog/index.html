@@ -431,11 +431,89 @@
 			<i>Data Processing:</i><br><br>
 			All experiments use the MIT-BIH Arrhythmia Database, where each patient record consists of a continuous ECG
 			waveform and beat-level annotations. Our preprocessing pipeline standardizes these signals before model
-			training. For each patient, we load the raw ECG waveform and its associated annotations. A 0.5 - 45 Hz
+			training. For each patient, we load the raw ECG waveform and its associated annotations. A 0.5–45 Hz
 			Butterworth bandpass filter removes baseline wander and high-frequency noise. This is applied in the
 			original sampling rate to preserve the alignment between waveform and annotated beat locations. Each entire
 			patient recording is normalized to the range [0,1]. Normalization is performed before
-			segmentation, ensuring that windows from the same record share a consistent amplitude scale.
+			segmentation, ensuring that windows from the same record share a consistent amplitude scale.<br><br>
+
+			We explore two segmentation strategies. The first uses fixed 50-second sliding windows with 2.5-second
+			stride, downsampled to 100 Hz, yielding 5000-sample segments. Windows are labeled as normal (class 0) if all
+			annotated beats within them are marked 'N', and abnormal (class 1) if at least one beat is non-normal. The
+			second approach extracts beat-centered segments: for each annotated beat, we extract a 2.5-second window
+			centered on that beat (250 samples at 100 Hz), labeled directly by the beat's annotation symbol. This yields
+			~103,000 individual beat segments. Both datasets are split 70/15/15 into train/validation/test, with class
+			balancing via upsampling the minority class to ensure equal representation.<br><br>
+
+			<i>Baseline Architecture (Fixed-Depth CNN-Transformer):</i><br><br>
+			Our baseline model processes ECG segments through a two-stage CNN followed by a fixed-depth transformer
+			encoder. The first convolutional layer applies 32 filters with a 7×1 kernel to extract local temporal
+			features, followed by batch normalization and ReLU activation. The second convolutional layer performs
+			patchification: using a kernel size and stride equal to the patch length (50 for window-based data, 25 for
+			beat-based data), it reduces the sequence into non-overlapping patches and projects them into a
+			128-dimensional
+			embedding space. For window-based segments (5000 samples), this yields 100 patches; for beat-based segments
+			(250 samples), it yields 10 patches.<br><br>
+
+			After CNN embedding, sinusoidal positional encodings are added to each patch. The resulting sequence is then
+			processed by a stack of 4 transformer encoder layers. Each layer consists of multi-head self-attention (2
+			heads,
+			64-dimensional keys/queries/values per head) followed by a position-wise feedforward network (256 hidden
+			units)
+			with residual connections and layer normalization. The transformer captures both local dependencies (within
+			nearby patches) and global context (across the entire segment). After the final transformer layer, we
+			perform
+			mean pooling over all patches to obtain a single 128-dimensional global representation. This representation
+			is
+			passed through a two-layer MLP classification head (128 → 128 with ReLU and dropout, then 128 → 2) to
+			produce
+			logits for binary classification (normal vs. abnormal).<br><br>
+
+			The fixed-depth baseline applies the same computational graph to every input: all segments pass through all
+			4
+			transformer layers regardless of their complexity, noise level, or confidence. This uniform processing
+			provides
+			a strong performance benchmark but offers no adaptation to input difficulty.<br><br>
+
+			<i>Adaptive-Depth Transformer Architecture:</i><br><br>
+			The adaptive model uses the same CNN patch embedding and positional encoding as the baseline, but replaces
+			the
+			fixed transformer stack with an adaptive halting mechanism inspired by Adaptive Computation Time (ACT) [<a
+				href="#ref_graves">4</a>]. Instead of
+			processing all inputs through all layers, the model dynamically decides when to stop processing each sample
+			based on a learned halting criterion.<br><br>
+
+			At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after applying self-attention and feedforward operations,
+			we extract a global representation <i>z</i><sub><i>l</i></sub> by mean-pooling over all patches. We then
+			compute a halting probability <i>h</i><sub><i>l</i></sub> = σ(γ · <i>z</i><sub><i>l</i></sub>[0] − β), where
+			σ is the sigmoid function, <i>z</i><sub><i>l</i></sub>[0] is the first dimension of the global embedding,
+			and γ (gamma) and β (center) are learned scalar parameters. This halting score represents the model's
+			confidence that it has gathered sufficient information to classify the input.<br><br>
+
+			We maintain per-sample state variables: cumulative halting mass <i>c</i> (initially 0), remainder mass
+			<i>R</i> (initially 1), and an active mask indicating whether processing continues. At each layer, we add
+			<i>h</i><sub><i>l</i></sub> to <i>c</i>. If <i>c</i> exceeds 1 − ε (where ε = 0.05 is a small threshold),
+			the sample halts: we accumulate the layer's output weighted by the remainder <i>R</i> (δ<sub>1</sub> =
+			<i>R</i> · <i>z</i><sub><i>l</i></sub>), and the sample contributes no further computation. If <i>c</i>
+			remains below 1 − ε, processing continues: we accumulate the layer's output weighted by
+			<i>h</i><sub><i>l</i></sub> (δ<sub>2</sub> = <i>h</i><sub><i>l</i></sub> · <i>z</i><sub><i>l</i></sub>),
+			and update the remainder as <i>R</i> ← <i>R</i> − <i>h</i><sub><i>l</i></sub>. The final layer forces all
+			remaining active samples to halt (<i>h</i><sub>3</sub> = 1).<br><br>
+
+			The model's output representation is the sum of all weighted layer contributions: <b>output</b> =
+			Σ<sub><i>l</i></sub> (δ<sub>1</sub> + δ<sub>2</sub>). This is passed to the same MLP classification head as
+			the baseline. The ponder cost ρ for each sample is computed as the number of layers executed plus the final
+			remainder used, approximating the effective "depth" that sample traversed. During training, we minimize a
+			composite loss: <i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[ρ], where
+			<i>L</i><sub>task</sub> is cross-entropy classification loss and α<sub>p</sub> = 5×10<sup>−4</sup> is a
+			hyperparameter controlling the penalty for computation. This encourages the model to halt early on simple
+			inputs while allowing deeper processing for complex or ambiguous cases.<br><br>
+
+			Critically, the halting decision is differentiable and learned end-to-end. The model autonomously discovers
+			which ECG segments require minimal processing (e.g., clean sinus rhythms) and which demand more computation
+			(e.g., noisy or arrhythmic patterns). This provides both computational efficiency and interpretability: by
+			analyzing the distribution of halting depths, we can infer which types of inputs the model finds more
+			challenging.<br><br>
 
 		</div>
 		<div class="margin-right-block">
