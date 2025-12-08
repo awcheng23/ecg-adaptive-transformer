@@ -1,12 +1,16 @@
-ID_TO_BEAT = {0:['N','L','R','e','j'], 1:['S','A','a','J'], 2:['V','E'], 3:['F'], 4:['/','Q','f']}
-ID_TO_AAMI = {0:'Normal', 1:'Supraventricular Premature', 2:'Premature Ventricular Contraction', 3:'Fusion of Ventricular & Normal', 4:'Unclassifiable'}
-ID_TO_CLASS = {0:'N',1:'S',2:'V',3:'F',4:'Q'}
+ID_TO_CLASS = {0:'N', 1:'AFIB', 2:'AFL', 3:'J'}
+ID_TO_NAME = {0:'Normal',1:'atrial fibrillation',2:'atrial flutter',3:'AV junctional rhythm'}
 
-# 102, 104, 107, and 217
-PATIENT_IDS = [100, 101, 103, 105, 106, 108, 109, 111, 112, 113, 114, 115, 116, 117, 118, 119, 121, 122, 123, 124, 200, 201, 202, 203, 205, 207, 208, 209, 210, 212, 213, 214, 215, 219, 220, 221, 222, 223, 228, 230, 231, 232, 233, 234]
+AFDB_RECORDS = [
+    "04015", "04043", "04048", "04126", "04746",
+    "04908", "04936", "05091", "05121", "05261",
+    "06426", "06453", "06995", "07162", "07859",
+    "07879", "07910", "08215", "08219", "08378",
+    "08405", "08434", "08455", "08479", "08541"
+]
 
-BEAT_TO_ID = {}
+CLASS_TO_ID = {}
 
-for ID, beats in ID_TO_BEAT.items():
+for ID, beats in ID_TO_CLASS.items():
     for beat in beats:
-        BEAT_TO_ID[beat] = ID
+        CLASS_TO_ID[beat] = ID
