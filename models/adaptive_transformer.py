@@ -102,12 +102,12 @@ class AdaptiveCNNTransformer(nn.Module):
             nn.Linear(d_model, num_classes),
         )
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, return_rho: bool = False):
         """
         Training-time forward with ACT-style depth halting.
 
         x: (B, 1, seq_len)
-        returns: logits (B, num_classes), ponder_loss (scalar)
+        returns: logits (B, num_classes), ponder_loss (scalar), optional rho per sample
         """
         B = x.size(0)
         device = x.device
@@ -192,6 +192,8 @@ class AdaptiveCNNTransformer(nn.Module):
         ponder_loss = rho.mean()
 
         logits = self.mlp_head(output)  # (B, num_classes)
+        if return_rho:
+            return logits, ponder_loss, rho
         return logits, ponder_loss
 
     @torch.no_grad()
