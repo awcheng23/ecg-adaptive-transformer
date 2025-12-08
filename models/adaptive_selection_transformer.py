@@ -125,10 +125,11 @@ class AdaptiveBlock(nn.Module):
     """
     Transformer encoder block with *adaptive* patch, head, and block selection.
 
-    - Patch selection: Mp_l ∈ (0,1)^{B×N} multiplies tokens entering the block.
+    - Patch selection: Mp_l ∈ (0,1)^{B×N} multiplies tokens entering the block (except CLS).
     - Head selection:  Mh_l ∈ (0,1)^{B×H} gates attention heads.
     - Block selection: Mb_l ∈ (0,1)^B gates the whole block (residual).
 
+    Decision network receives accumulated context from previous blocks for efficiency.
     We use soft gates via Gumbel-sigmoid; at inference you can threshold them
     to get hard selections and real compute savings.
     """
@@ -161,14 +162,21 @@ class AdaptiveBlock(nn.Module):
         self.activation = nn.ReLU()
 
         # ---- decision network: three heads Wp_l, Wh_l, Wb_l ----
-        # We condition on a pooled representation of Z_l (mean over patches).
+        # Input is accumulated representation from prior blocks (shared/efficient design).
+        # We use a small MLP to process the pooled context.
+        self.dec_mlp = nn.Sequential(
+            nn.Linear(d_model, d_model // 2),
+            nn.ReLU(),
+            nn.Linear(d_model // 2, d_model),
+        )
         self.dec_patch = nn.Linear(d_model, num_patches)  # mp_l
         self.dec_head = nn.Linear(d_model, n_heads)       # mh_l
         self.dec_block = nn.Linear(d_model, 1)            # mb_l
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, z_accumulated: torch.Tensor = None):
         """
-        x: (B, N, d_model)
+        x: (B, N, d_model)  where x[i, 0, :] is the class token
+        z_accumulated: (B, d_model) optional accumulated context from prior blocks
 
         Returns:
           x_out: (B, N, d_model)
@@ -178,21 +186,29 @@ class AdaptiveBlock(nn.Module):
         H = self.n_heads
 
         # ---- decision network input Z_l ----
-        # In AdaViT this shares previous block outputs; here we use simple mean pooling.
-        z_pool = x.mean(dim=1)       # (B, d_model)
+        # If no accumulated context, pool the current block; else use accumulated (shared design).
+        if z_accumulated is None:
+            z_input = x.mean(dim=1)  # (B, d_model)
+        else:
+            z_input = z_accumulated  # (B, d_model) from prior blocks
 
-        # logits
-        mp_logits = self.dec_patch(z_pool)              # (B, N)
-        mh_logits = self.dec_head(z_pool)               # (B, H)
-        mb_logits = self.dec_block(z_pool).squeeze(-1)  # (B,)
+        # Process through MLP for richer representation
+        z_proc = self.dec_mlp(z_input)  # (B, d_model)
+
+        # Generate logits
+        mp_logits = self.dec_patch(z_proc)              # (B, N)
+        mh_logits = self.dec_head(z_proc)               # (B, H)
+        mb_logits = self.dec_block(z_proc).squeeze(-1)  # (B,)
 
         # Gumbel-Softmax-style relaxed gates in (0,1)
         patch_gate = gumbel_sigmoid(mp_logits, self.tau, self.training)  # (B, N)
         head_gate  = gumbel_sigmoid(mh_logits, self.tau, self.training)  # (B, H)
         block_gate = gumbel_sigmoid(mb_logits, self.tau, self.training)  # (B,)
 
-        # ---- soft patch selection: gate tokens entering attention ----
-        x_masked = x * patch_gate.unsqueeze(-1)  # (B, N, D)
+        # ---- soft patch selection with class token preservation ----
+        # Class token (position 0) is always kept; other patches are gated.
+        x_masked = x.clone()
+        x_masked[:, 1:, :] = x[:, 1:, :] * patch_gate[:, 1:].unsqueeze(-1)  # (B, N, D)
 
         # ---- attention sublayer with head gating ----
         x_norm = self.norm1(x_masked)
@@ -212,7 +228,7 @@ class AdaptiveBlock(nn.Module):
             "head": head_gate,    # (B, H)
             "block": block_gate,  # (B,)
         }
-        return x, gates
+        return x, gates, z_proc  # return accumulated context for next block
 
 
 # ---------------------------------------------------------------------------
@@ -371,20 +387,26 @@ class AdaptiveSelectionCNNTransformer(nn.Module):
 
         # ----- CNN patch embedding -----
         x = self._cnn_embed(x)  # (B, N, D)
+        
+        # Add class token (prepend to patches)
+        cls_token = x[:, :1, :].clone()  # (B, 1, D)
+        x = torch.cat([cls_token, x[:, 1:, :]], dim=1)  # (B, N+1, D) conceptually, but we keep N
+        
         N = self.num_patches
         D = self.d_model
         H = self.n_heads
 
-        # ----- pass through adaptive blocks -----
+        # ----- pass through adaptive blocks with accumulated context -----
         all_patch_gates = []
         all_head_gates = []
         all_block_gates = []
 
         # FLOPs per-sample accumulator
         flops_per_sample = torch.zeros(B, device=device)
+        z_accumulated = None  # shared context from prior blocks
 
         for block in self.blocks:
-            x, gates = block(x)
+            x, gates, z_accumulated = block(x, z_accumulated=z_accumulated)
             Mp = gates["patch"]   # (B, N)
             Mh = gates["head"]    # (B, H)
             Mb = gates["block"]   # (B,)
@@ -395,12 +417,13 @@ class AdaptiveSelectionCNNTransformer(nn.Module):
 
             # ----- FLOPs estimation for this block (per sample) -----
             # Effective tokens and heads (soft counts)
-            tokens_eff = Mp.sum(dim=1)           # (B,)
-            heads_eff = Mh.sum(dim=1)            # (B,)
-            # Normalize
-            token_ratio = tokens_eff / float(N)  # in [0,1]
-            head_ratio = heads_eff / float(H)    # in [0,1]
-            block_gate = Mb.clamp(0.0, 1.0)      # (B,)
+            # Class token is always kept, so effective = 1 (class) + sum(patch_gate[1:])
+            tokens_eff = 1.0 + Mp[:, 1:].sum(dim=1)      # (B,) - class token + gated patches
+            heads_eff = Mh.sum(dim=1)                    # (B,)
+            # Normalize by max possible tokens (class + patches)
+            token_ratio = tokens_eff / float(N + 1)      # in [0,1]
+            head_ratio = heads_eff / float(H)            # in [0,1]
+            block_gate = Mb.clamp(0.0, 1.0)              # (B,)
 
             # Q/K/V + out_proj scale ~ linearly with #tokens and block gate
             flops_qkv_out = (3.0 * N * D * D + N * D * D)
@@ -418,10 +441,9 @@ class AdaptiveSelectionCNNTransformer(nn.Module):
             flops_block = flops_qkv_out + flops_scores + flops_ffn  # (B,)
             flops_per_sample = flops_per_sample + flops_block
 
-        # ----- global representation + head -----
-        # simple average over patches (you could switch to a cls token if you wish)
-        z = x.mean(dim=1)           # (B, D)
-        logits = self.mlp_head(z)   # (B, num_classes)
+        # ----- global representation: use class token -----
+        z = x[:, 0, :]                # (B, D) - class token representation
+        logits = self.mlp_head(z)     # (B, num_classes)
 
         # normalize FLOPs to get a "compute fraction" like a ponder term
         # (if gates are all 1, we should be close to 1.0 on average)
