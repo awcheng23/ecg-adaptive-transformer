@@ -80,14 +80,18 @@ class AdaptiveCNNTransformer(nn.Module):
         self.pos_encoder = PositionalEncoding(d_model, max_len=self.num_patches)
 
         # ---- explicit stack of transformer layers ----
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=n_heads,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            batch_first=True,
-        )
-        self.layers = nn.ModuleList([encoder_layer for _ in range(num_layers)])
+        # Create independent TransformerEncoderLayer instances per depth
+        # (avoid reusing the same module instance which would share parameters)
+        self.layers = nn.ModuleList([
+            nn.TransformerEncoderLayer(
+                d_model=d_model,
+                nhead=n_heads,
+                dim_feedforward=dim_feedforward,
+                dropout=dropout,
+                batch_first=True,
+            )
+            for _ in range(num_layers)
+        ])
 
         # ---- halting parameters (similar to gate_scale/gate_center) ----
         # h_l = sigmoid( gamma * z_l[..., 0] - center )
