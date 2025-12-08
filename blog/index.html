@@ -429,11 +429,9 @@
 			<h1>Methodology</h1>
 
 			<i>Data Processing:</i><br><br>
-			All experiments use the MIT-BIH Arrhythmia Database 
-            ([<a href="#ref_physionet_afdb">4</a>]), 
-            where each patient record consists of a continuous ECG
-			waveform and beat-level annotations. Our preprocessing pipeline standardizes these signals before model
-			training. For each patient, we load the raw ECG waveform and its associated annotations. A 0.5–45 Hz
+			All experiments use the MIT-BIH Atrial Fibrillation Database
+            ([<a href="#ref_moody_mark_1983">5</a>], [<a href="#ref_physionet_afdb">6</a>]).
+            Each record contains approximately ten hours of two-channel ECG sampled at 250 Hz, accompanied by rhythm annotations indicating AFIB (atrial fibrillation), AFL (atrial flutter), J (AV junctional rhythm, and N (used to indicate all other rhythms). We load the raw ECG waveform and its associated annotations. A 0.5–45 Hz
 			Butterworth bandpass filter removes baseline wander and high-frequency noise. This is applied in the
 			original sampling rate to preserve the alignment between waveform and annotated beat locations. Each entire
 			patient recording is normalized to the range [0,1]. Normalization is performed before
