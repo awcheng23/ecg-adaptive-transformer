@@ -1,16 +1,17 @@
 """
 Train fixed-depth transformer on AFIB dataset (Normal vs Abnormal classification).
-Tracks FLOPs, computation time, and other metrics for comparison with adaptive model.
+Saves best model and training metrics. Run test_fixed_afib.py to evaluate on test set.
 """
+import os
+import time
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
-import time
-
-from models.fixed_transformer import CNNTransformer
 from sklearn.utils.class_weight import compute_class_weight
 from thop import profile
+
+from models.fixed_transformer import CNNTransformer
 
 
 def main():
@@ -19,7 +20,6 @@ def main():
     # -----------------------
     train_path = "data/db_train_afib.npz"
     val_path   = "data/db_val_afib.npz"
-    test_path  = "data/db_test_afib.npz"
 
     # model hyperparameters
     seq_len     = 7500    # 30 seconds @ 250 Hz
@@ -60,13 +60,8 @@ def main():
     X_val = val_data['segments'].astype(np.float32)
     y_val = val_data['labels'].astype(np.int64)
     
-    test_data = np.load(test_path)
-    X_test = test_data['segments'].astype(np.float32)
-    y_test = test_data['labels'].astype(np.int64)
-    
     print(f"Train: {X_train.shape[0]} samples, shape: {X_train.shape}")
     print(f"Val: {X_val.shape[0]} samples")
-    print(f"Test: {X_test.shape[0]} samples")
     
     # Analyze class distribution
     unique_train, counts_train = np.unique(y_train, return_counts=True)
@@ -76,7 +71,6 @@ def main():
     if X_train.ndim == 2:
         X_train = X_train[:, np.newaxis, :]
         X_val = X_val[:, np.newaxis, :]
-        X_test = X_test[:, np.newaxis, :]
     
     print(f"After adding channel: {X_train.shape}")
     
@@ -89,10 +83,6 @@ def main():
         torch.from_numpy(X_val),
         torch.from_numpy(y_val)
     )
-    test_ds = TensorDataset(
-        torch.from_numpy(X_test),
-        torch.from_numpy(y_test)
-    )
     
     train_loader = DataLoader(
         train_ds,
@@ -104,14 +94,6 @@ def main():
 
     val_loader = DataLoader(
         val_ds,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=0,
-        pin_memory=(device.type == "cuda"),
-    )
-    
-    test_loader = DataLoader(
-        test_ds,
         batch_size=batch_size,
         shuffle=False,
         num_workers=0,
@@ -293,111 +275,29 @@ def main():
             scheduler.step()
     
     # -----------------------
-    # test evaluation with detailed metrics
+    # Save training artifacts
     # -----------------------
-    print(f"\n{'='*60}")
-    print("Evaluating on test set...")
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
-    
-    test_loss = 0.0
-    test_correct = 0
-    test_total = 0
-    all_preds = []
-    all_targets = []
-    test_inference_times = []
-    
-    # Per-class metrics
-    class_inference_times = {0: [], 1: []}  # Track inference time per class
-    class_correct = {0: 0, 1: 0}
-    class_total = {0: 0, 1: 0}
-    
-    with torch.no_grad():
-        for x_test_batch, y_test_batch in test_loader:
-            x_test_batch = x_test_batch.to(device)
-            y_test_batch = y_test_batch.to(device)
-            
-            # Track inference time for test set
-            start_time = time.time()
-            logits_test = model(x_test_batch)
-            inference_time = time.time() - start_time
-            test_inference_times.append(inference_time)
-            
-            # Track per-sample inference time and class
-            per_sample_time = inference_time / x_test_batch.size(0)
-            for label in y_test_batch.cpu().numpy():
-                class_inference_times[int(label)].append(per_sample_time)
-            
-            loss_test = criterion(logits_test, y_test_batch)
-            
-            test_loss += loss_test.item() * x_test_batch.size(0)
-            preds_test = logits_test.argmax(dim=1)
-            test_correct += (preds_test == y_test_batch).sum().item()
-            test_total += x_test_batch.size(0)
-            
-            # Per-class accuracy
-            for pred, target in zip(preds_test.cpu().numpy(), y_test_batch.cpu().numpy()):
-                class_total[int(target)] += 1
-                if pred == target:
-                    class_correct[int(target)] += 1
-            
-            all_preds.append(preds_test.cpu().numpy())
-            all_targets.append(y_test_batch.cpu().numpy())
-    
-    test_epoch_loss = test_loss / test_total
-    test_epoch_acc = test_correct / test_total
-    
-    # Compute average inference metrics
+    torch.save(model.state_dict(), "checkpoints/fixed_transformer_afib_final.pth")
+    torch.save(torch.tensor(flops_per_step, dtype=torch.float64), "checkpoints/flops_per_step_afib.pt")
+    print(f"Saved FLOPs per step to checkpoints/flops_per_step_afib.pt")
+
     avg_train_inference_time = np.mean(inference_times)
-    avg_test_inference_time = np.mean(test_inference_times)
-    
-    # Compute per-class metrics
-    class_0_acc = class_correct[0] / class_total[0] if class_total[0] > 0 else 0
-    class_1_acc = class_correct[1] / class_total[1] if class_total[1] > 0 else 0
-    class_0_time = np.mean(class_inference_times[0]) if len(class_inference_times[0]) > 0 else 0
-    class_1_time = np.mean(class_inference_times[1]) if len(class_inference_times[1]) > 0 else 0
-    
-    print(f"\n{'='*60}")
-    print("Final Results:")
-    print(f"  Test Loss: {test_epoch_loss:.4f}")
-    print(f"  Test Accuracy: {test_epoch_acc:.4f}")
-    print(f"  Best Val Loss: {best_val_loss:.4f}")
-    print(f"\nPer-Class Performance:")
-    print(f"  Class 0 (Normal):")
-    print(f"    Accuracy: {class_0_acc:.4f} ({class_correct[0]}/{class_total[0]})")
-    print(f"    Avg inference time: {class_0_time*1000:.3f} ms/sample")
-    print(f"  Class 1 (Abnormal):")
-    print(f"    Accuracy: {class_1_acc:.4f} ({class_correct[1]}/{class_total[1]})")
-    print(f"    Avg inference time: {class_1_time*1000:.3f} ms/sample")
-    print(f"  Time ratio (Abnormal/Normal): {class_1_time/class_0_time:.3f}x" if class_0_time > 0 else "")
-    print(f"\nComputational Metrics:")
-    print(f"  FLOPs per forward pass: {flops_cached:.3e}")
-    print(f"  Avg train inference time: {avg_train_inference_time*1000:.2f} ms/batch")
-    print(f"  Avg test inference time: {avg_test_inference_time*1000:.2f} ms/batch")
-    print(f"  Fixed depth: {num_layers} layers (always)")
-    print(f"  Total parameters: {total_params:,}")
-    print(f"\nNote: Fixed transformer uses same computation for ALL samples.")
-    print(f"      Time differences are due to batch effects, not model adaptivity.")
-    
-    # Save comprehensive metrics
+
+    # -----------------------
+    # Save training/validation metrics only
+    # -----------------------
     metrics = {
         'best_val_loss': best_val_loss,
-        'test_loss': test_epoch_loss,
-        'test_acc': test_epoch_acc,
-        'flops_per_step': flops_cached,
-        'avg_train_inference_time_ms': avg_train_inference_time * 1000,
-        'avg_test_inference_time_ms': avg_test_inference_time * 1000,
+        'last_train_loss': train_epoch_loss,
+        'last_train_acc': train_epoch_acc,
+        'last_val_loss': val_epoch_loss,
+        'last_val_acc': val_epoch_acc,
+        'flops_per_forward': flops_cached,
+        'avg_train_infer_time_ms': avg_train_inference_time * 1000,
         'num_layers': num_layers,
-        'fixed_depth': num_layers,  # Always uses all layers
+        'fixed_depth': num_layers,
         'total_params': total_params,
         'trainable_params': trainable_params,
-        # Per-class metrics
-        'class_0_acc': class_0_acc,
-        'class_1_acc': class_1_acc,
-        'class_0_inference_time_ms': class_0_time * 1000,
-        'class_1_inference_time_ms': class_1_time * 1000,
-        'class_0_count': class_total[0],
-        'class_1_count': class_total[1],
         'model_config': {
             'seq_len': seq_len,
             'patch_len': patch_len,
@@ -405,18 +305,17 @@ def main():
             'n_heads': n_heads,
             'num_layers': num_layers,
             'dim_ff': dim_ff,
-        }
+            'dropout': dropout,
+        },
     }
     torch.save(metrics, metrics_path)
-    print(f"\nSaved metrics to {metrics_path}")
-    
-    flops_tensor = torch.tensor(flops_per_step, dtype=torch.float64)
-    flops_path = "checkpoints/flops_per_step_afib.pt"
-    torch.save(flops_tensor, flops_path)
-    print(f"Saved {flops_path}")
-    
-    print("="*60)
-    print("Training complete!")
+    print(f"Saved training metrics to {metrics_path}")
+    print("Training complete. Run test_fixed_afib.py for test metrics.")
+
+
+if __name__ == "__main__":
+    main()
+
 
 
 if __name__ == "__main__":

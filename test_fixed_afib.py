@@ -1,7 +1,6 @@
 """
-Evaluate the adaptive halting transformer on the AFIB test set.
-Loads the trained checkpoint, reports accuracy, depth usage, FLOPs estimate,
-and inference-time stats without retraining.
+Evaluate the fixed-depth transformer on the AFIB test set.
+Loads the trained checkpoint, reports accuracy, per-class metrics, FLOPs, and inference time.
 """
 import os
 import time
@@ -12,7 +11,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.utils.class_weight import compute_class_weight
 from thop import profile
 
-from models.adaptive_transformer import AdaptiveCNNTransformer
+from models.fixed_transformer import CNNTransformer
 
 
 def main():
@@ -22,8 +21,8 @@ def main():
     train_path = "data/db_train_afib.npz"  # used only for class weights
     test_path = "data/db_test_afib.npz"
 
-    checkpoint_path = "checkpoints/adaptive_transformer_afib.pth"
-    metrics_path = "checkpoints/adaptive_afib_test_metrics.pt"
+    checkpoint_path = "checkpoints/fixed_transformer_afib.pth"
+    metrics_path = "checkpoints/fixed_afib_test_metrics.pt"
 
     # model hyperparameters (must match training)
     seq_len     = 7500
@@ -34,9 +33,7 @@ def main():
     dim_ff      = 256
     dropout     = 0.1
     num_classes = 2
-    halt_epsilon = 0.05
 
-    alpha_p = 5e-4  # ponder loss weight used in training
     label_smoothing = 0.0
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -67,7 +64,7 @@ def main():
     # -----------------------
     # model + weights
     # -----------------------
-    model = AdaptiveCNNTransformer(
+    model = CNNTransformer(
         seq_len=seq_len,
         patch_len=patch_len,
         d_model=d_model,
@@ -76,7 +73,6 @@ def main():
         num_classes=num_classes,
         dim_feedforward=dim_ff,
         dropout=dropout,
-        halt_epsilon=halt_epsilon,
     ).to(device)
     state = torch.load(checkpoint_path, map_location=device)
     # Filter out profiling keys from thop
@@ -104,12 +100,7 @@ def main():
 
     class_correct = {0: 0, 1: 0}
     class_total = {0: 0, 1: 0}
-    class_depth_sum = {0: 0.0, 1: 0.0}
-    class_depth_count = {0: 0, 1: 0}
     class_time = {0: [], 1: []}
-    depth_records = []  # all sample depths
-    depth_per_class = {0: [], 1: []}
-    full_depth_hits = {0: 0, 1: 0}
 
     # -----------------------
     # evaluation loop
@@ -119,18 +110,18 @@ def main():
             x_batch = x_batch.to(device)
             y_batch = y_batch.to(device)
 
-            # Profile full-depth FLOPs once
+            # Profile full FLOPs once
             if flops_full_cached is None:
                 flops_full, _ = profile(model, inputs=(x_batch,), verbose=False)
                 flops_full_cached = flops_full
-                print(f"Full-depth FLOPs per forward: {flops_full_cached:.3e}")
+                print(f"Full FLOPs per forward: {flops_full_cached:.3e}")
 
             start_time = time.time()
-            logits, ponder_loss, rho = model(x_batch, return_rho=True)
+            logits = model(x_batch)
             batch_time = time.time() - start_time
             inference_times.append(batch_time)
 
-            loss = criterion(logits, y_batch) + alpha_p * ponder_loss
+            loss = criterion(logits, y_batch)
             test_loss += loss.item() * x_batch.size(0)
 
             preds = logits.argmax(dim=1)
@@ -139,17 +130,11 @@ def main():
 
             # per-sample accounting
             per_sample_time = batch_time / x_batch.size(0)
-            for pred, target, depth in zip(preds.cpu().numpy(), y_batch.cpu().numpy(), rho.cpu().numpy()):
+            for pred, target in zip(preds.cpu().numpy(), y_batch.cpu().numpy()):
                 class_total[int(target)] += 1
                 if pred == target:
                     class_correct[int(target)] += 1
-                class_depth_sum[int(target)] += float(depth)
-                class_depth_count[int(target)] += 1
                 class_time[int(target)].append(per_sample_time)
-                depth_records.append(float(depth))
-                depth_per_class[int(target)].append(float(depth))
-                if depth >= num_layers - 1e-6:
-                    full_depth_hits[int(target)] += 1
 
     # -----------------------
     # aggregate metrics
@@ -159,50 +144,25 @@ def main():
 
     class_0_acc = class_correct[0] / class_total[0] if class_total[0] else 0.0
     class_1_acc = class_correct[1] / class_total[1] if class_total[1] else 0.0
-    class_0_depth = class_depth_sum[0] / class_depth_count[0] if class_depth_count[0] else 0.0
-    class_1_depth = class_depth_sum[1] / class_depth_count[1] if class_depth_count[1] else 0.0
 
     class_0_time = float(np.mean(class_time[0])) if class_time[0] else 0.0
     class_1_time = float(np.mean(class_time[1])) if class_time[1] else 0.0
 
-    avg_depth_overall = (class_depth_sum[0] + class_depth_sum[1]) / max((class_depth_count[0] + class_depth_count[1]), 1)
     avg_infer_time = float(np.mean(inference_times)) if inference_times else 0.0
 
-    # depth distribution stats
-    depth_overall_std = float(np.std(depth_records)) if depth_records else 0.0
-    depth_overall_median = float(np.median(depth_records)) if depth_records else 0.0
-    depth_0_std = float(np.std(depth_per_class[0])) if depth_per_class[0] else 0.0
-    depth_1_std = float(np.std(depth_per_class[1])) if depth_per_class[1] else 0.0
-    depth_0_median = float(np.median(depth_per_class[0])) if depth_per_class[0] else 0.0
-    depth_1_median = float(np.median(depth_per_class[1])) if depth_per_class[1] else 0.0
-
-    # effective FLOPs based on observed depth
-    eff_flops_overall = flops_full_cached * (avg_depth_overall / num_layers) if flops_full_cached is not None else 0.0
-    eff_flops_class_0 = flops_full_cached * (class_0_depth / num_layers) if flops_full_cached is not None else 0.0
-    eff_flops_class_1 = flops_full_cached * (class_1_depth / num_layers) if flops_full_cached is not None else 0.0
-
-    full_depth_ratio_0 = full_depth_hits[0] / class_total[0] if class_total[0] else 0.0
-    full_depth_ratio_1 = full_depth_hits[1] / class_total[1] if class_total[1] else 0.0
-
-    print("\nTest Results (Adaptive):")
+    print("\nTest Results (Fixed):")
     print(f"  Test Loss: {test_loss:.4f}")
     print(f"  Test Accuracy: {test_acc:.4f}")
-    print(f"  Avg depth (overall): {avg_depth_overall:.3f} / {num_layers}")
-    print(f"  Depth median (overall): {depth_overall_median:.3f}, std: {depth_overall_std:.3f}")
-    print(f"  Eff. FLOPs (overall): {eff_flops_overall:.3e}")
     print("  Per-Class:")
-    print(f"    Class 0 (Normal):   Acc={class_0_acc:.4f}, AvgDepth={class_0_depth:.3f}, Time={class_0_time*1000:.3f} ms/sample")
-    print(f"    Class 1 (Abnormal): Acc={class_1_acc:.4f}, AvgDepth={class_1_depth:.3f}, Time={class_1_time*1000:.3f} ms/sample")
-    print(f"    Depth med/std (Normal): {depth_0_median:.3f}/{depth_0_std:.3f} | Full-depth frac: {full_depth_ratio_0:.3f}")
-    print(f"    Depth med/std (Abnormal): {depth_1_median:.3f}/{depth_1_std:.3f} | Full-depth frac: {full_depth_ratio_1:.3f}")
-    print(f"    Eff. FLOPs (Normal): {eff_flops_class_0:.3e} | (Abnormal): {eff_flops_class_1:.3e}")
-    if class_0_depth > 0:
-        print(f"  Depth Ratio (Abnormal/Normal): {class_1_depth/class_0_depth:.3f}")
+    print(f"    Class 0 (Normal):   Acc={class_0_acc:.4f}, Time={class_0_time*1000:.3f} ms/sample")
+    print(f"    Class 1 (Abnormal): Acc={class_1_acc:.4f}, Time={class_1_time*1000:.3f} ms/sample")
     if class_0_time > 0:
         print(f"  Time Ratio (Abnormal/Normal): {class_1_time/class_0_time:.3f}x")
     print("  Compute:")
-    print(f"    Full-depth FLOPs: {flops_full_cached:.3e}")
+    print(f"    FLOPs per forward pass: {flops_full_cached:.3e}")
     print(f"    Avg test inference time: {avg_infer_time*1000:.2f} ms/batch")
+    print(f"    Fixed depth: {num_layers} layers (always)")
+    print(f"\nNote: Fixed transformer uses same computation for ALL samples.")
 
     # -----------------------
     # persist metrics
@@ -212,29 +172,13 @@ def main():
         'test_acc': float(test_acc),
         'class_0_acc': class_0_acc,
         'class_1_acc': class_1_acc,
-        'class_0_depth': class_0_depth,
-        'class_1_depth': class_1_depth,
-        'depth_ratio_abn_norm': class_1_depth / class_0_depth if class_0_depth > 0 else 0.0,
         'class_0_time_ms': class_0_time * 1000,
         'class_1_time_ms': class_1_time * 1000,
         'time_ratio_abn_norm': class_1_time / class_0_time if class_0_time > 0 else 0.0,
-        'avg_depth_overall': avg_depth_overall,
-        'depth_overall_median': depth_overall_median,
-        'depth_overall_std': depth_overall_std,
-        'depth_0_median': depth_0_median,
-        'depth_1_median': depth_1_median,
-        'depth_0_std': depth_0_std,
-        'depth_1_std': depth_1_std,
-        'full_depth_ratio_0': full_depth_ratio_0,
-        'full_depth_ratio_1': full_depth_ratio_1,
         'avg_test_infer_time_ms': avg_infer_time * 1000,
-        'full_depth_flops': flops_full_cached,
-        'eff_flops_overall': eff_flops_overall,
-        'eff_flops_class_0': eff_flops_class_0,
-        'eff_flops_class_1': eff_flops_class_1,
+        'flops_per_forward': flops_full_cached,
         'num_layers': num_layers,
-        'alpha_p': alpha_p,
-        'halt_epsilon': halt_epsilon,
+        'fixed_depth': num_layers,  # Always uses all layers
         'model_config': {
             'seq_len': seq_len,
             'patch_len': patch_len,
