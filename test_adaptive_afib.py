@@ -1,5 +1,6 @@
 """
-Evaluate the adaptive halting transformer on the AFIB test set.
+Evaluate the adaptive halting transformer WITHOUT weight sharing on the AFIB test set.
+This is the version with independent (non-shared) layer weights (more parameters).
 Loads the trained checkpoint, reports accuracy, depth usage, FLOPs estimate,
 and inference-time stats without retraining.
 """
@@ -12,7 +13,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.utils.class_weight import compute_class_weight
 from thop import profile
 
-from models.adaptive_transformer import AdaptiveCNNTransformer
+from models.adaptive_transformer import AdaptiveCNNTransformer  # WITHOUT weight sharing
 
 
 def main():
@@ -184,7 +185,7 @@ def main():
     full_depth_ratio_0 = full_depth_hits[0] / class_total[0] if class_total[0] else 0.0
     full_depth_ratio_1 = full_depth_hits[1] / class_total[1] if class_total[1] else 0.0
 
-    print("\nTest Results (Adaptive):")
+    print("\nTest Results (Adaptive No WS - WITHOUT weight sharing):")
     print(f"  Test Loss: {test_loss:.4f}")
     print(f"  Test Accuracy: {test_acc:.4f}")
     print(f"  Avg depth (overall): {avg_depth_overall:.3f} / {num_layers}")
@@ -235,6 +236,7 @@ def main():
         'num_layers': num_layers,
         'alpha_p': alpha_p,
         'halt_epsilon': halt_epsilon,
+        'model_variant': 'adaptive_no_ws',  # WITHOUT weight sharing
         'model_config': {
             'seq_len': seq_len,
             'patch_len': patch_len,

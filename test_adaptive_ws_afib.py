@@ -1,5 +1,6 @@
 """
-Evaluate the adaptive halting transformer WITHOUT weight sharing on the AFIB test set.
+Evaluate the adaptive halting transformer WITH weight sharing on the AFIB test set.
+This is the version with shared layer weights (fewer parameters).
 Loads the trained checkpoint, reports accuracy, depth usage, FLOPs estimate,
 and inference-time stats without retraining.
 """
@@ -12,7 +13,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.utils.class_weight import compute_class_weight
 from thop import profile
 
-from models.adaptive_transformer_ws import AdaptiveCNNTransformer
+from models.adaptive_transformer_ws import AdaptiveCNNTransformer  # WITH weight sharing
 
 
 def main():
@@ -22,7 +23,7 @@ def main():
     train_path = "data/db_train_afib.npz"  # used only for class weights
     test_path = "data/db_test_afib.npz"
 
-    checkpoint_path = "checkpoints/adaptive_transformer_ws_afib.pth"
+    checkpoint_path = "checkpoints/adaptive_ws_transformer_afib.pth"
     metrics_path = "checkpoints/adaptive_ws_afib_test_metrics.pt"
 
     # model hyperparameters (must match training)
@@ -184,7 +185,7 @@ def main():
     full_depth_ratio_0 = full_depth_hits[0] / class_total[0] if class_total[0] else 0.0
     full_depth_ratio_1 = full_depth_hits[1] / class_total[1] if class_total[1] else 0.0
 
-    print("\nTest Results (Adaptive WS):")
+    print("\nTest Results (Adaptive WS - WITH weight sharing):")
     print(f"  Test Loss: {test_loss:.4f}")
     print(f"  Test Accuracy: {test_acc:.4f}")
     print(f"  Avg depth (overall): {avg_depth_overall:.3f} / {num_layers}")
@@ -198,55 +199,40 @@ def main():
     print(f"    Eff. FLOPs (Normal): {eff_flops_class_0:.3e} | (Abnormal): {eff_flops_class_1:.3e}")
     if class_0_depth > 0:
         print(f"  Depth Ratio (Abnormal/Normal): {class_1_depth/class_0_depth:.3f}")
-    if class_0_time > 0:
-        print(f"  Time Ratio (Abnormal/Normal): {class_1_time/class_0_time:.3f}x")
-    print("  Compute:")
-    print(f"    Full-depth FLOPs: {flops_full_cached:.3e}")
-    print(f"    Avg test inference time: {avg_infer_time*1000:.2f} ms/batch")
 
     # -----------------------
-    # persist metrics
+    # save metrics
     # -----------------------
     metrics = {
         'test_loss': float(test_loss),
         'test_acc': float(test_acc),
-        'class_0_acc': class_0_acc,
-        'class_1_acc': class_1_acc,
-        'class_0_depth': class_0_depth,
-        'class_1_depth': class_1_depth,
-        'depth_ratio_abn_norm': class_1_depth / class_0_depth if class_0_depth > 0 else 0.0,
-        'class_0_time_ms': class_0_time * 1000,
-        'class_1_time_ms': class_1_time * 1000,
-        'time_ratio_abn_norm': class_1_time / class_0_time if class_0_time > 0 else 0.0,
-        'avg_depth_overall': avg_depth_overall,
-        'depth_overall_median': depth_overall_median,
-        'depth_overall_std': depth_overall_std,
-        'depth_0_median': depth_0_median,
-        'depth_1_median': depth_1_median,
-        'depth_0_std': depth_0_std,
-        'depth_1_std': depth_1_std,
-        'full_depth_ratio_0': full_depth_ratio_0,
-        'full_depth_ratio_1': full_depth_ratio_1,
-        'avg_test_infer_time_ms': avg_infer_time * 1000,
-        'full_depth_flops': flops_full_cached,
-        'eff_flops_overall': eff_flops_overall,
-        'eff_flops_class_0': eff_flops_class_0,
-        'eff_flops_class_1': eff_flops_class_1,
+        'class_0_acc': float(class_0_acc),
+        'class_1_acc': float(class_1_acc),
+        'class_0_depth': float(class_0_depth),
+        'class_1_depth': float(class_1_depth),
+        'class_0_time_ms': float(class_0_time * 1000),
+        'class_1_time_ms': float(class_1_time * 1000),
+        'avg_depth_overall': float(avg_depth_overall),
+        'avg_infer_time_ms': float(avg_infer_time * 1000),
+        'full_depth_flops': float(flops_full_cached) if flops_full_cached is not None else 0.0,
+        'eff_flops_overall': float(eff_flops_overall),
+        'eff_flops_class_0': float(eff_flops_class_0),
+        'eff_flops_class_1': float(eff_flops_class_1),
+        'depth_0_std': float(depth_0_std),
+        'depth_1_std': float(depth_1_std),
+        'depth_0_median': float(depth_0_median),
+        'depth_1_median': float(depth_1_median),
+        'depth_overall_std': float(depth_overall_std),
+        'depth_overall_median': float(depth_overall_median),
+        'full_depth_ratio_0': float(full_depth_ratio_0),
+        'full_depth_ratio_1': float(full_depth_ratio_1),
         'num_layers': num_layers,
-        'alpha_p': alpha_p,
         'halt_epsilon': halt_epsilon,
-        'model_config': {
-            'seq_len': seq_len,
-            'patch_len': patch_len,
-            'd_model': d_model,
-            'n_heads': n_heads,
-            'num_layers': num_layers,
-            'dim_ff': dim_ff,
-            'dropout': dropout,
-        },
+        'model_variant': 'adaptive_ws',  # WITH weight sharing
     }
+    
     torch.save(metrics, metrics_path)
-    print(f"Saved test metrics to {metrics_path}")
+    print(f"\nMetrics saved to {metrics_path}")
 
 
 if __name__ == "__main__":

@@ -402,18 +402,18 @@
 			Mechanisms such as Adaptive Computation Time (ACT) for RNNs allow models to dynamically allocate processing
 			steps per
 			input, halting early on simpler cases and devoting more computation to difficult ones [<a
-				href="#ref_graves">4</a>]. Extensions of this idea to vision transformer architectures include adaptive
+				href="#ref_graves">6</a>]. Extensions of this idea to vision transformer architectures include adaptive
 			token halting, where low-importance spatial tokens do not progress to deeper layers and are removed from
 			computation during inference time. This reduces computational
 			cost across depth and has demonstrated preserved accuracy, also revealing interpretable correlations between
-			input difficulty and computation depth [<a href="#ref_avit">5</a>]. <br><br>
+			input difficulty and computation depth [<a href="#ref_avit">7</a>]. <br><br>
 
 			Another adaptive approach involves learning class-relevant tokens, essentially reducing the number of tokens
 			processed. More commonly seen in image classification tasks, the transformer dynamically identifies the most
 			informative regions of an input by learning which patch embeddings are most relevant for the target class.
 			Instead of processing every patch uniformly, the model assigns importance scores to each patch and retains
 			only those that contribute meaningfully to the prediction. This allows the model to concentrate
-			computational resources where they matter most [<a href="#ref_jiang">6</a>].<br><br>
+			computational resources where they matter most [<a href="#ref_jiang">8</a>].<br><br>
 
 			We want to explore adaptive computation methods for ECG signal analysis because arrhythmic episodes can
 			often occupy only small portions of an otherwise normal signal, providing a framework for efficient anomaly
@@ -443,9 +443,10 @@
 			<h1 class="section-title" id="methodology">Methodology</h1>
 
 			<i>Dataset and Preprocessing:</i><br><br>
-			All experiments use the MIT-BIH Atrial Fibrillation Database ([<a href="#ref_moody_mark_1983">5</a>], [<a
-				href="#ref_physionet_afdb">6</a>]), comprising 23 ten-hour ECG recordings sampled
-			at 250 Hz. We use the first channel of the recording to stay consistent with prior work. Each signal has a
+			All experiments use the MIT-BIH Atrial Fibrillation Database,
+			comprising 23 ten-hour ECG recordings sampled
+			at 250 Hz [<a href="#ref_physionet_afdb">9</a>]. We use the first channel of the recording to stay
+			consistent with prior work. Each signal has a
 			list of rhythm annotations that mark continuous intervals of time. We segment each signal into
 			non-overlapping 30-second windows (7500 samples), labeled as
 			normal (class 0) if the segment lies entirely in a sinus rhythm (N) interval, and abnormal (class 1) if it
@@ -945,10 +946,7 @@
 				<a id="ref_jiang"></a>[8] <a href="https://arxiv.org/html/2405.03722v1">
 					Class-relevant Patch Embedding Selection for Few-Shot Image Classification</a>, Yuan et al., 2024
 				<br><br>
-				<a id="ref_moody_mark_1983"></a>[9] <a href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
-					A new method for detecting atrial fibrillation using RR intervals</a>,
-				Moody and Mark, 1983<br><br>
-				<a id="ref_physionet_afdb"></a>[10] <a href="https://physionet.org/content/afdb/1.0.0/">
+				<a id="ref_physionet_afdb"></a>[9] <a href="https://physionet.org/content/afdb/1.0.0/">
 					MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
 
 			</div>
