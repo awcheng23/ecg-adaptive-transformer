@@ -510,7 +510,14 @@
 			The adaptive model shares the same CNN patch embedding, positional encoding, and classification head as the
 			baseline, but replaces the fixed transformer stack with an Adaptive Computation Time (ACT)-style halting
 			mechanism [<a href="#ref_graves">4</a>]. This enables per-sample, per-layer halting decisions, allowing
-			simple inputs to exit early while complex inputs traverse more layers.<br><br>
+			simple inputs to exit early while complex inputs traverse more layers. We use two variants: <b>(i) Non
+				weight
+				sharing</b>, where each of the four transformer blocks has its own parameters (~855K total), and <b>(ii)
+				Weight
+				sharing</b>, where a single transformer block is reused across all depths (~457K total), keeping the
+			same
+			halting logic but halving the parameter footprint. FLOPs reported at "full depth" assume all four layers are
+			executed; effective FLOPs during inference depend on the learned halting pattern.<br><br>
 
 			<b>Halting Mechanism:</b> At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after computing the global
 			representation <i>z</i><sub><i>l</i></sub> = (1/100) Σ<sub><i>p</i></sub>
@@ -546,7 +553,13 @@
 			model takes a complementary approach by employing learned sparsity gates to skip computation at the patch,
 			head, and block levels within a fixed four-layer depth. Rather than deciding whether to process at all, the
 			selection model decides what to process, achieving computational savings through fine-grained pruning of
-			redundant tokens, attention heads, and entire transformer blocks.<br><br>
+			redundant tokens, attention heads, and entire transformer blocks. The model introduces small per-layer
+			gating
+			MLPs (for patch, head, and block decisions); these extra networks increase parameters (~974K total) and
+			raise
+			the full-depth FLOPs to ~2.76B versus 1.92B for the halting/fixed models, but heavy sparsity at inference
+			drives
+			the effective FLOPs sharply down.<br><br>
 
 			<b>Gate Architecture:</b> At each layer, the model produces three learnable gate functions:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
@@ -585,12 +598,13 @@
 			where α<sub>p</sub> = 5×10<sup>−4</sup> (same as the halting model). The decision network and gate
 			projections add approximately 5% to the total parameter count, keeping the model comparable in size to the
 			other approaches.<br><br>
-
-			<b>Comparison of Adaptive Models:</b><br><br>
+			<hr>
+			<h1>Comparison of Adaptive Models</h1>
 			<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
 				<tr style="background-color: #f0f0f0;">
 					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 18%;">Aspect</td>
 					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Halting
+						(Weight Sharing and Non Weight Sharing)
 					</td>
 					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Selection
 					</td>
@@ -699,154 +713,140 @@
 			<div class="main-section-divider"></div>
 			<h1 class="section-title">Experimental Results</h1>
 
-			We trained all three models for 20 epochs and evaluated their performance on computational efficiency,
-			accuracy, and interpretability. Our results confirm that adaptive computation successfully reduces FLOPs
-			while maintaining competitive accuracy, with distinct learning patterns emerging between the two adaptive
-			strategies.<br><br>
+			We trained all four models on the MIT-BIH Atrial Fibrillation Database and evaluated their performance
+			across computational efficiency, accuracy, and model complexity. Our results demonstrate that adaptive
+			computation reduces FLOPs and parameters while maintaining or improving classification accuracy.<br><br>
+			<hr>
+			<h1>Model Performance Comparison</h1>
+			<div style="overflow-x: auto; margin: 20px 0;">
+				<table
+					style="width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 13px;">
+					<thead>
+						<tr style="background-color: #f0f0f0; border-bottom: 2px solid #333;">
+							<th
+								style="padding: 12px 8px; text-align: left; border-right: 1px solid #ccc; font-weight: bold;">
+								Model</th>
+							<th
+								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
+								Parameters</th>
+							<th
+								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
+								FLOPs (Full Depth)</th>
+							<th
+								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
+								Avg FLOPs (Test)</th>
+							<th
+								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
+								FLOPs Reduction</th>
+							<th
+								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
+								Test Accuracy</th>
+							<th style="padding: 12px 8px; text-align: center; font-weight: bold;">Δ Accuracy vs Fixed
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr style="border-bottom: 1px solid #ddd;">
+							<td
+								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
+								Fixed CNN-Transformer</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">854K</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">—</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
+								<b>98.81%</b>
+							</td>
+							<td style="padding: 10px 8px; text-align: center;">—</td>
+						</tr>
+						<tr style="border-bottom: 1px solid #ddd;">
+							<td
+								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
+								Adaptive (No WS)</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">855K</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.35B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;"><span
+									style="color: #2ca02c; font-weight: bold;">−29.9%</span></td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
+								<b>98.93%</b>
+							</td>
+							<td style="padding: 10px 8px; text-align: center;"><span
+									style="color: #2ca02c;">+0.12%</span></td>
+						</tr>
+						<tr style="border-bottom: 1px solid #ddd;">
+							<td
+								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
+								Adaptive (WS)</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">457K <span
+									style="color: #176f30;">(−46%)</span></td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.51B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;"><span
+									style="color: #2ca02c; font-weight: bold;">−21.4%</span></td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
+								<b>98.60%</b>
+							</td>
+							<td style="padding: 10px 8px; text-align: center;"><span
+									style="color: #d62728;">−0.21%</span></td>
+						</tr>
+						<tr style="border-bottom: 1px solid #ddd;">
+							<td
+								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
+								Selection (Gating)</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">974K</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">2.76B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">0.25B</td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;"><span
+									style="color: #176f30; font-weight: bold;">−91.1%</span></td>
+							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
+								<b>99.26%</b>
+							</td>
+							<td style="padding: 10px 8px; text-align: center;"><span
+									style="color: #2ca02c;">+0.45%</span></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 
-			<h2>Model Performance and Efficiency Trade-offs</h2>
+			<h3>Key Observations</h3>
+			<b>Adaptive (No WS):</b> 29.9% FLOPs reduction (1.35B vs 1.92B) with the same parameter budget (855K) and a
+			+0.12% accuracy gain to 98.93% — best efficiency/accuracy trade-off among fixed-parameter models.<br><br>
+			<b>Adaptive (WS):</b> 46% fewer parameters (457K) and 21.4% FLOPs reduction (1.51B), with a small −0.21%
+			accuracy delta (98.60%). Best when memory is tight and modest FLOPs cuts are acceptable.<br><br>
+			<b>Selection (Gating):</b> Full-depth graph is 2.76B FLOPs, but heavy pruning yields 0.25B effective FLOPs
+			(91.1% reduction) and 99.26% accuracy (+0.45%). Not directly comparable to the 1.92B baseline because its
+			full-depth cost is higher; shows sparsity can be extremely compute-efficient.<br><br>
 
+			<h3>FLOPs Over Time</h3>
 			<div style="text-align: center; margin: 20px 0;">
-				<img src="images/plots/epoch_metrics_comparison.png" alt="Training metrics over epochs"
+				<img src="images/plots/flops_over_time.png" alt="FLOPs over training iterations"
 					style="max-width: 90%; height: auto;">
 				<div style="font-size: 14px; color: #666; margin-top: 10px; font-style: italic;">
-					<b>Figure 3.</b> Training and validation metrics over 20 epochs. Adaptive-Halting achieves 98.91%
-					peak validation accuracy while using ~3.58 layers on average (89.5% of full depth).
-					Adaptive-Selection demonstrates progressive compute reduction from 30% to 8.5%, achieving 91.5%
-					FLOPs savings at the cost of 2.6 percentage points in validation accuracy.
+					<b>Figure 5.</b> FLOPs per forward pass across training. Fixed (blue) stays flat at 1.92B. Adaptive
+					(No WS, orange) converges to ~1.69B (≈12% reduction) with low variance. Adaptive (WS, magenta)
+					starts
+					higher but settles near ~1.51B while fluctuating more, reflecting the uncertainty from shared
+					weights.
 				</div>
 			</div>
 
-			All models converge to high accuracy (98-99% training, 95-98% validation), confirming <b>H1</b>: adaptive
-			models reduce computation without major accuracy sacrifice. The Adaptive-Halting model achieves 97.89% test
-			accuracy with 12% FLOPs reduction (3.52 avg layers vs. 4.0). The Adaptive-Selection model achieves 95.45%
-			test accuracy with <b>91.5% FLOPs reduction</b>, demonstrating an extreme efficiency regime suitable for
-			edge deployment.<br><br>
+			The adaptive curves drop below the fixed baseline early in training and remain lower, illustrating <b>H1</b>
+			(efficiency without accuracy loss). The WS trajectory shows larger variance, consistent with shared weights
+			forcing the halting mechanism to balance reuse against depth—yet its mean stays below fixed. The smoother No
+			WS
+			curve indicates a more stable halting policy. Together, these trends support <b>H3</b>: the models learn to
+			allocate computation based on signal difficulty, maintaining reduced FLOPs while preserving
+			accuracy.<br><br>
 
-			Notably, the Adaptive-Selection model's compute fraction drops dramatically during training—from ~30% in
-			early epochs to just 8.5% by epoch 20—while the Adaptive-Halting model maintains stable ~90% depth
-			utilization. This suggests fundamentally different learning strategies: halting learns a consistent
-			allocation early, while selection progressively prunes redundant computation after mastering the task.
-			<br><br>
-
-			<h2>Class-Dependent Computation Allocation</h2>
-
-			<div style="text-align: center; margin: 20px 0;">
-				<img src="images/plots/class_wise_compute_comparison.png" alt="Class-wise compute allocation"
-					style="max-width: 90%; height: auto;">
-				<div style="font-size: 14px; color: #666; margin-top: 10px; font-style: italic;">
-					<b>Figure 4.</b> Per-class FLOPs allocation over training. Both adaptive models allocate
-					significantly more compute to abnormal samples (orange) than normal samples (blue), supporting H2.
-					The Adaptive-Selection model exhibits more pronounced differentiation (2-3× compute ratio) compared
-					to Adaptive-Halting (15-20% depth difference).
-				</div>
-			</div>
-
-			Figure 4 strongly supports <b>H2</b>: adaptive models allocate computation differentially based on input
-			class. The Adaptive-Halting model consistently uses ~3.8-4.0 layers for abnormal rhythms versus ~3.2-3.4
-			layers for normal rhythms (15-20% difference). The Adaptive-Selection model shows even sharper
-			differentiation: normal samples converge to ~5-6% compute fraction while abnormal samples maintain ~12-15%,
-			a 2-3× multiplier. This aligns with clinical intuition—arrhythmic patterns require deeper analysis than
-			regular sinus rhythms.<br><br>
-
-			<h2>Learning Dynamics and Adaptation Strategies</h2>
-
-			<div style="text-align: center; margin: 20px 0;">
-				<img src="images/plots/flops_over_time.png" alt="FLOPs evolution during training"
-					style="max-width: 90%; height: auto;">
-				<div style="font-size: 14px; color: #666; margin-top: 10px; font-style: italic;">
-					<b>Figure 5.</b> Computational cost over training steps. Adaptive-Halting (orange) stabilizes around
-					1.7B FLOPs after epoch 3. Adaptive-Selection (green) exhibits monotonic reduction from ~600M to
-					~200M FLOPs, demonstrating "progressive pruning" where the model first learns the task, then
-					optimizes efficiency.
-				</div>
-			</div>
-
-			Figure 5 reveals distinct temporal dynamics. The Adaptive-Halting model converges to stable depth allocation
-			by epoch 3 (~2000 steps) and maintains ~1.7B FLOPs (±10%) thereafter. In contrast, the Adaptive-Selection
-			model enters a consistent downward trajectory after epoch 5, monotonically reducing FLOPs by ~60% over
-			subsequent training. This "learn then prune" behavior suggests the selection gates require task competence
-			before identifying redundant computation.<br><br>
-
-			<div style="text-align: center; margin: 20px 0;">
-				<img src="images/plots/efficiency_gains.png" alt="Training progression and efficiency gains"
-					style="max-width: 90%; height: auto;">
-				<div style="font-size: 14px; color: #666; margin-top: 10px; font-style: italic;">
-					<b>Figure 6.</b> Training progression showing efficiency gains (shaded areas). Top panel shows
-					absolute FLOPs over training—both adaptive models operate below the Fixed baseline, with
-					Adaptive-Selection achieving dramatically lower compute (~0.4B FLOPs vs. Fixed's 1.92B). The shaded
-					regions quantify cumulative efficiency gains throughout training, with Adaptive-Selection
-					accumulating massive savings relative to the Fixed baseline.
-				</div>
-			</div>
-
-			Figure 6 visualizes the efficiency gains as shaded areas between the Fixed baseline and each adaptive model.
-			The Adaptive-Halting model (pink shading) maintains consistent ~10% FLOPs reduction throughout training,
-			while the Adaptive-Selection model (orange shading) demonstrates increasing efficiency gains, ultimately
-			operating at just ~20% of the Fixed model's compute. These shaded areas represent not just instantaneous
-			savings but cumulative computational budget saved over the entire training process—a critical consideration
-			for resource-constrained scenarios.<br><br>
-
-			<h2>Four-Phase Learning Pattern in Adaptive Selection</h2>
-
-			<div style="text-align: center; margin: 20px 0;">
-				<img src="images/plots/learning_phases_analysis.png" alt="Learning phases analysis"
-					style="max-width: 90%; height: auto;">
-				<div style="font-size: 14px; color: #666; margin-top: 10px; font-style: italic;">
-					<b>Figure 7.</b> Adaptive-Selection exhibits four distinct learning phases: warmup (steps 0-1000),
-					active learning (1000-3000), sparsity emergence (3000-8000), and refinement (8000+). The model
-					achieves 60% FLOPs reduction by step 12,000 while maintaining stable performance, with decreasing
-					variance indicating convergence to confident pruning decisions.
-				</div>
-			</div>
-
-			Detailed analysis of the Adaptive-Selection model reveals four learning phases: (1) <b>Warmup</b> (0-1000
-			steps): high variance as gates explore; (2) <b>Active Learning</b> (1000-3000): gates stabilize around
-			~18-20% compute while task accuracy improves; (3) <b>Sparsity Emergence</b> (3000-8000): progressive
-			pruning begins, FLOPs drop 40%; (4) <b>Refinement</b> (8000+): stable efficient regime at ~15% compute with
-			low variance. This pattern suggests the model requires task competence before confident pruning, addressing
-			<b>H4</b> on interpretability—the temporal structure of learning reveals how the model identifies essential
-			versus redundant computation.<br><br>
-
-			<h2>Gate Behavior and Computational Stability</h2>
-
-			<div style="text-align: center; margin: 20px 0;">
-				<img src="images/plots/selection_model_activity.png" alt="Selection model gate activity"
-					style="max-width: 90%; height: auto;">
-				<div style="font-size: 14px; color: #666; margin-top: 10px; font-style: italic;">
-					<b>Figure 8.</b> Adaptive-Selection model activity during training. The model learns to operate in
-					increasingly sparse regimes (12-18% by late training), with dramatic variance reduction indicating
-					stable, confident gating decisions. Spikes in activity correlate with difficult batches or class
-					imbalance, demonstrating input-dependent adaptation.
-				</div>
-			</div>
-
-			Figure 8 shows the Adaptive-Selection model progressively reduces average activation from ~30% to ~15%
-			while simultaneously decreasing variance (200-step window std drops from 0.15 to 0.02). The occasional
-			spikes in compute usage (e.g., around steps 5000, 7000) correspond to batches with higher abnormal-class
-			representation or particularly noisy samples, providing evidence for <b>H3</b>: computation correlates with
-			signal complexity. The model learns to confidently prune normal samples while preserving resources for
-			challenging arrhythmic patterns.<br><br>
-
-			<h2>Summary of Findings</h2>
-
-			<ul style="margin-left: 40px;">
-				<li><b>H1 (Efficiency):</b> ✓ Confirmed. Adaptive-Halting: -0.19% accuracy, -12% FLOPs;
-					Adaptive-Selection: -2.6% accuracy, -91.5% FLOPs.</li>
-				<li><b>H2 (Input-Dependent Allocation):</b> ✓ Confirmed. Abnormal samples receive 15-20% more depth
-					(halting) or 2-3× compute (selection).</li>
-				<li><b>H3 (Signal Complexity):</b> ⊕ Partially supported. High-variance batches trigger increased
-					compute; requires deeper analysis of SNR and morphology.</li>
-				<li><b>H4 (Interpretability):</b> ⊕ Partially supported. Four-phase learning and class-dependent
-					allocation reveal interpretable strategies; attention analysis pending.</li>
-			</ul>
-			<br>
-
-			The results demonstrate that both adaptive strategies successfully learn input-dependent computation, with
-			Adaptive-Halting offering conservative efficiency gains and Adaptive-Selection enabling extreme FLOPs
-			reduction at modest accuracy cost. The choice depends on deployment constraints: halting for clinical
-			accuracy requirements, selection for edge devices.<br><br>
-
+		</div>
+		<div class="margin-right-block" ;">
+			<b>Table 1.</b> <i> Comprehensive model performance metrics.</i> All models are evaluated on the same test
+			set
+			(AFDB, 2-class: normal vs. atrial fibrillation). FLOPs reported as billions of floating-point operations per
+			forward pass. "Avg FLOPs (Test)" reflects actual computation after halting/gating during inference.
+			Parameter counts include all trainable weights. WS = weight sharing. Δ Accuracy shows improvement or
+			degradation relative to the fixed baseline.<br><br>
 		</div>
 	</div>
 
