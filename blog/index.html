@@ -363,16 +363,6 @@
 	</div>
 
 
-	<!-- <div class="margin-right-block">
-		<b>Figure 2.</b> From <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">Shah et
-			al. (2024)
-		</a>: <i>ECG-TransCovNet</i>. A ViT splits an image into
-		patches, encodes them with positional embeddings, processes them through a transformer encoder, and uses a
-		classification head to predict image classes.
-	</div>
-	</div> -->
-
-
 	<div class="content-margin-container" id="prior-work">
 		<div class="margin-left-block"></div>
 
@@ -400,12 +390,6 @@
 			windows, and provide limited interpretability regarding which portions of the signal drive
 			predictions.<br><br>
 
-			Recent approaches also process continuous ECG segments end-to-end, simultaneously detecting and classifying
-			heartbeats without explicit segmentation. By modeling inter-beat dependencies directly, these methods reduce
-			preprocessing complexity and capture more holistic temporal information. Nonetheless, these too maintain a
-			fixed computational depth, treating all segments equally regardless of clinical complexity or signal
-			quality. This leaves potential efficiency gains unexploited and limits the model’s ability to adapt to
-			challenging inputs.<br><br>
 
 			Outside ECG-specific work, adaptive computation has been explored in machine learning more broadly.
 			Mechanisms such as Adaptive Computation Time (ACT) allow models to dynamically allocate processing steps per
@@ -428,11 +412,6 @@
 			capture local and global ECG features while introducing adaptive halting, enabling input-dependent
 			computation. This framework addresses the limitations of fixed-depth models and provides a resource-aware,
 			interpretable, and robust paradigm for ECG classification.<br><br>
-		</div>
-
-		<div class="margin-right-block">
-			Margin note: situate your work at the intersection of ECG modelling, transformer architectures, and adaptive
-			computation.
 		</div>
 	</div>
 
@@ -624,11 +603,146 @@
 					savings are achieved without accuracy loss, and whether depth correlates with input
 					difficulty.<br><br>
 
-			</div>
-			<div class="margin-right-block">
-				A caption for the video could go here.
+					<hr>
+					<h1>Adaptive-Selection Transformer Model</h1>
+					While the adaptive-halting model uses <i>early stopping</i> to dynamically reduce depth, the
+					adaptive-selection model takes a complementary approach: it employs <i>learned sparsity gates</i>
+					to skip computation at the patch, head, and block levels within a fixed four-layer depth. Rather
+					than
+					deciding whether to process at all, the selection model decides <i>what</i> to process, achieving
+					computational savings through fine-grained pruning of redundant tokens, attention heads, and entire
+					transformer blocks.<br><br>
+
+					<b>Architecture Overview:</b> Like the fixed and halting models, the adaptive-selection model begins
+					with the same CNN stem to produce 100 patch embeddings of dimension 128. These patches are then
+					passed
+					through four transformer blocks, each equipped with three learnable gate functions:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<i>M</i><sub>p,<i>l</i></sub> ∈ (0,1)<sup>100</sup>: patch (token) selection at layer
+						<i>l</i><br>
+						<i>M</i><sub>h,<i>l</i></sub> ∈ (0,1)<sup>H</sup>: attention head selection at layer
+						<i>l</i><br>
+						<i>M</i><sub>b,<i>l</i></sub> ∈ (0,1): block-wide gating at layer <i>l</i>
+					</div>
+					<br>
+					These gates are computed per-sample via a learned decision network that processes accumulated
+					context
+					from prior layers, allowing the model to adaptively determine which patches, heads, and blocks are
+					necessary for each input. The number of layers is fixed (always 4), but the effective computation
+					varies
+					based on gate activation patterns.<br><br>
+
+					<b>Decision Network and Gate Computation:</b> At each layer <i>l</i>, the model maintains an
+					accumulated context vector <i>Z</i><sub><i>l</i></sub> ∈ ℝ<sup><i>D</i></sup>, initially the global
+					pooling of the input patches. This context is processed by a small MLP:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<i>z</i><sub>proc</sub> = ReLU(W<sub>1</sub> · <i>Z</i><sub><i>l</i></sub> +
+						<i>b</i><sub>1</sub>)<br>
+						<i>z</i><sub>proc</sub> = W<sub>2</sub> · <i>z</i><sub>proc</sub> + <i>b</i><sub>2</sub>
+					</div>
+					<br>
+					Three output heads then generate logits for patch, head, and block gates:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						logits<sub>p</sub> = W<sub>p</sub> · <i>z</i><sub>proc</sub> ∈ ℝ<sup>100</sup><br>
+						logits<sub>h</sub> = W<sub>h</sub> · <i>z</i><sub>proc</sub> ∈ ℝ<sup>H</sup><br>
+						logits<sub>b</sub> = W<sub>b</sub> · <i>z</i><sub>proc</sub> ∈ ℝ
+					</div>
+					<br>
+					These logits are converted to soft gates in (0,1) using a Gumbel-sigmoid relaxation during training,
+					allowing differentiable learning while encouraging binary decisions. At inference, gates can be
+					thresholded to achieve discrete sparsity patterns and realize actual computational savings.<br><br>
+
+					<b>Gate Application and FLOPs Estimation:</b> The patch gate multiplies token embeddings (except the
+					class token, which is always retained):<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						X<sub>masked</sub> = [x<sub>cls</sub>, <i>M</i><sub>p,<i>l</i></sub>[1:] ⊙ x[1:]]
+					</div>
+					<br>
+					The head gate masks attention heads in multi-head self-attention:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						attention<sub>output</sub> = attention<sub>output</sub> ⊙ <i>M</i><sub>h,<i>l</i></sub>
+					</div>
+					<br>
+					where ⊙ denotes element-wise multiplication. The block gate gates the residual connections for both
+					attention and feed-forward sublayers:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						X ← X + <i>M</i><sub>b,<i>l</i></sub> · (attention<sub>out</sub> + ff<sub>out</sub>)
+					</div>
+					<br>
+					FLOPs are estimated as:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						N<sub>eff,<i>l</i></sub> = 1 + <i>M</i><sub>p,<i>l</i></sub>[1:].sum()<br>
+						α<sub>h</sub> = <i>M</i><sub>h,<i>l</i></sub>.sum() / <i>H</i><br>
+						FLOPs<sub><i>l</i></sub> = (N<sub>eff,<i>l</i></sub> / 100) · (α<sub>h</sub>) ·
+						<i>M</i><sub>b,<i>l</i></sub> · FLOPs<sub>dense,<i>l</i></sub>
+					</div>
+					<br>
+					This triple product captures patch sparsity (fewer tokens), head sparsity (fewer attention heads),
+					and block gating multiplicatively, allowing significant FLOPs reduction when gates cooperate. The
+					overall compute fraction is:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						compute_fraction = Σ<sub><i>l</i></sub> FLOPs<sub><i>l</i></sub> /
+						(4 · FLOPs<sub>dense</sub>)
+					</div>
+					<br>
+					This metric ranges from 0 to 1, where 1.0 represents full-model computation (all gates active) and
+					lower values indicate more aggressive pruning.<br><br>
+
+					<b>Comparison with Adaptive-Halting:</b> The key distinctions between the two adaptive approaches
+					are:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<b>Adaptive-Halting:</b><br>
+						&nbsp;&nbsp;• Varies depth (1–4 layers) via early stopping<br>
+						&nbsp;&nbsp;• Single scalar halting decision per layer<br>
+						&nbsp;&nbsp;• Ponder cost ρ ranges from ~1.1 to 4.0 layers on average<br>
+						&nbsp;&nbsp;• Simple, interpretable: "stop when confident"<br>
+						&nbsp;&nbsp;• Saves computation by skipping all downstream layers<br><br>
+
+						<b>Adaptive-Selection:</b><br>
+						&nbsp;&nbsp;• Maintains fixed depth (always 4 layers) but prunes within layers<br>
+						&nbsp;&nbsp;• Three hierarchical gates: patches, heads, blocks<br>
+						&nbsp;&nbsp;• compute_fraction can be very low (~0.1–0.3) with aggressive gating<br>
+						&nbsp;&nbsp;• More complex decision: fine-grained sparsity per sample<br>
+						&nbsp;&nbsp;• Saves computation by pruning redundant tokens and attention<br>
+					</div>
+					<br>
+					In practice, the two approaches can be complementary: halting reduces depth for simple inputs, while
+					selection prunes within necessary layers. The selection model may achieve greater average FLOPs
+					reduction because it can aggressively gate patches and heads even when a sample reaches full depth,
+					whereas the halting model incurs the cost of all processing up to the halting point.<br><br>
+
+					<b>Training Objective:</b> Like the adaptive-halting model, the selection model is trained with a
+					composite loss balancing task accuracy and computation:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[compute_fraction]
+					</div>
+					<br>
+					where α<sub>p</sub> = 5×10<sup>−4</sup> (same as the halting model) is the regularization weight.
+					The
+					compute_fraction term encourages gates to prune aggressively, but the task loss prevents the gates
+					from becoming too sparse and degrading accuracy. During training, Gumbel-sigmoid relaxation provides
+					differentiable gate outputs; at inference, thresholding the gate logits produces discrete sparsity
+					patterns. The decision network and gate projections add only ~5% to the total parameter count,
+					keeping
+					the model comparable in size to the other approaches.<br><br>
+
+					<b>Evaluation Metrics:</b> For the adaptive-selection model, we track:<br><br>
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						(1) Test accuracy and per-class accuracy<br>
+						(2) Average compute_fraction overall and per class<br>
+						(3) Effective FLOPs (full-depth FLOPs × compute_fraction)<br>
+						(4) Mean gate keep rates: mean(<i>M</i><sub>p</sub>), mean(<i>M</i><sub>h</sub>),
+						mean(<i>M</i><sub>b</sub>)<br>
+						(5) Per-sample inference time and FLOPs deltas relative to fixed and halting models<br>
+					</div>
+					<br>
+					These metrics allow us to quantify sparsity patterns and compare the compute-accuracy tradeoffs
+					across all three models, testing the same four hypotheses (H1–H4) in a unified framework.<br><br>
+
 			</div>
 		</div>
+
+
 
 		<div class="content-margin-container" id="implications_and_limitations">
 			<div class="margin-left-block">
