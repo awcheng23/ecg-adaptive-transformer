@@ -114,6 +114,8 @@ def main():
     # FLOPs and metrics trackers
     # -----------------------
     flops_per_step = []
+    flops_per_step_class0 = []  # Normal
+    flops_per_step_class1 = []  # Abnormal
     flops_full_cached = None
     inference_times_train = []
     
@@ -133,6 +135,7 @@ def main():
     model_path = "checkpoints/selective_transformer_afib.pth"
     metrics_path = "checkpoints/selective_afib_metrics.pt"
     flops_path = "checkpoints/selective_flops_per_step_afib.pt"
+    flops_path_classwise = "checkpoints/selective_flops_per_step_afib_classwise.pt"
 
     for epoch in range(num_epochs):
         model.train()
@@ -167,10 +170,27 @@ def main():
                 print("NaN loss encountered, aborting training.")
                 return
 
-            # Effective FLOPs scaled by average depth
+            # Effective FLOPs scaled by depth (per-sample rho is the ACT ponder term)
             avg_depth = rho.mean()
             flops_eff = flops_full_cached * (avg_depth.item() / num_layers)
             flops_per_step.append(flops_eff)
+
+            # Class-wise FLOPs (scale class mean depth to full-depth FLOPs to match overall units)
+            rho_cpu = rho.detach().cpu()
+            labels_cpu = y.detach().cpu()
+            depth_frac = rho_cpu / float(num_layers)
+            class0_mask = labels_cpu == 0
+            class1_mask = labels_cpu == 1
+            if class0_mask.any():
+                frac0 = depth_frac[class0_mask].mean().item()
+                flops_per_step_class0.append(flops_full_cached * frac0)
+            else:
+                flops_per_step_class0.append(float('nan'))
+            if class1_mask.any():
+                frac1 = depth_frac[class1_mask].mean().item()
+                flops_per_step_class1.append(flops_full_cached * frac1)
+            else:
+                flops_per_step_class1.append(float('nan'))
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
@@ -241,7 +261,19 @@ def main():
     # -----------------------
     torch.save(model.state_dict(), "checkpoints/adaptive_transformer_afib_final.pth")
     torch.save(torch.tensor(flops_per_step, dtype=torch.float64), flops_path)
-    print(f"Saved FLOPs per step to {flops_path}")
+    torch.save(
+        {
+            "overall": torch.tensor(flops_per_step, dtype=torch.float64),
+            "class0": torch.tensor(flops_per_step_class0, dtype=torch.float64),
+            "class1": torch.tensor(flops_per_step_class1, dtype=torch.float64),
+            "full_depth_flops": flops_full_cached,
+            "num_layers": num_layers,
+        },
+        flops_path_classwise,
+    )
+    print(
+        f"Saved FLOPs per step to {flops_path} and class-wise data to {flops_path_classwise}"
+    )
 
     avg_train_infer_time = float(np.mean(inference_times_train)) if len(inference_times_train) else 0.0
 

@@ -147,6 +147,8 @@ def main():
     # FLOPs tracking and metrics
     # -----------------------
     flops_per_step = []
+    flops_per_step_class0 = []  # Normal
+    flops_per_step_class1 = []  # Abnormal
     flops_cached = None
     inference_times = []  # Track inference time per batch
     
@@ -165,6 +167,8 @@ def main():
     best_val_loss = float("inf")
     model_path = "checkpoints/fixed_transformer_afib.pth"
     metrics_path = "checkpoints/fixed_afib_metrics.pt"
+    flops_path = "checkpoints/flops_per_step_afib.pt"
+    flops_path_classwise = "checkpoints/flops_per_step_afib_classwise.pt"
 
     print(f"\nStarting training for {num_epochs} epochs...")
     print("="*60)
@@ -189,6 +193,15 @@ def main():
                 print(f"Number of parameters: {params}")
 
             flops_per_step.append(flops_cached)
+
+            # Class-wise FLOPs split (fixed model: proportional to sample count)
+            labels_cpu = y.detach().cpu()
+            batch_size_eff = x.size(0)
+            flops_per_sample = flops_cached / float(batch_size_eff)
+            class0_count = (labels_cpu == 0).sum().item()
+            class1_count = (labels_cpu == 1).sum().item()
+            flops_per_step_class0.append(flops_per_sample * class0_count if class0_count > 0 else float('nan'))
+            flops_per_step_class1.append(flops_per_sample * class1_count if class1_count > 0 else float('nan'))
 
             # Track inference time
             start_time = time.time()
@@ -278,8 +291,19 @@ def main():
     # Save training artifacts
     # -----------------------
     torch.save(model.state_dict(), "checkpoints/fixed_transformer_afib_final.pth")
-    torch.save(torch.tensor(flops_per_step, dtype=torch.float64), "checkpoints/flops_per_step_afib.pt")
-    print(f"Saved FLOPs per step to checkpoints/flops_per_step_afib.pt")
+    torch.save(torch.tensor(flops_per_step, dtype=torch.float64), flops_path)
+    torch.save(
+        {
+            "overall": torch.tensor(flops_per_step, dtype=torch.float64),
+            "class0": torch.tensor(flops_per_step_class0, dtype=torch.float64),
+            "class1": torch.tensor(flops_per_step_class1, dtype=torch.float64),
+            "flops_per_forward": flops_cached,
+        },
+        flops_path_classwise,
+    )
+    print(
+        f"Saved FLOPs per step to {flops_path} and class-wise data to {flops_path_classwise}"
+    )
 
     avg_train_inference_time = np.mean(inference_times)
 
