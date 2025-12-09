@@ -116,6 +116,7 @@ def main():
     flops_per_step = []
     flops_per_step_class0 = []  # Normal
     flops_per_step_class1 = []  # Abnormal
+    acc_per_step = []  # Training accuracy per batch
     flops_full_cached = None
     inference_times_train = []
 
@@ -200,8 +201,10 @@ def main():
             running_loss += loss.item() * x.size(0)
             running_compute_fraction += compute_fraction.item() * x.size(0)
             preds = logits.argmax(dim=1)
-            running_correct += (preds == y).sum().item()
+            correct = (preds == y).sum().item()
+            running_correct += correct
             running_total += x.size(0)
+            acc_per_step.append(correct / x.size(0))
 
             if (batch_idx + 1) % 20 == 0:
                 batch_loss = running_loss / running_total
@@ -275,6 +278,7 @@ def main():
         },
         flops_path_classwise,
     )
+    torch.save(torch.tensor(acc_per_step, dtype=torch.float32), "checkpoints/adaptive_selection_acc_per_step_afib.pt")
     print(f"Saved FLOPs per step to {flops_path} and class-wise data to {flops_path_classwise}")
 
     avg_train_infer_time = float(np.mean(inference_times_train)) if len(inference_times_train) else 0.0
