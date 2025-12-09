@@ -380,58 +380,56 @@
 			recurrent architectures and moving toward transformer-based approaches. Deep learning methods typically
 			apply
 			convolutional networks to ECG waveforms, sometimes transforming the signals into spectral or time-frequency
-			representations to better capture morphological and frequency-domain features. These models effectively
-			classify common arrhythmias and establish strong benchmark performance, but they process entire segments
-			uniformly, applying the same computational resources to common and uncommon signals alike [<a
-				href="#ref_ullah">2</a>]. This limits
-			efficiency and offers little insight into which inputs require more processing. <br><br>
+			representations to better capture morphological and frequency-domain features [<a
+				href="#ref_ullah">2</a>].<br><br>
 
 			More recent transformer-based models have demonstrated that self-attention can capture long-range
 			dependencies across multiple heartbeats, improving the detection of arrhythmias that depend on temporal
 			context rather than single-beat morphology. Hybrid designs that combine convolutional layers for local
 			feature extraction with transformers for global context have also shown that integrating both local and
 			long-range information enhances classification accuracy [<a href="#ref_akan">3</a>]. While these models
-			achieve high performance, they
-			still operate with a fixed number of layers for every input, ignoring variability in segment difficulty or
-			noise. As a result, they may over-process simple segments while under-analyzing challenging or noisy
-			windows, and provide limited interpretability regarding which portions of the signal drive
+			achieve high performance, they operate with a fixed number of layers for every input, ignoring variability
+			in segment difficulty or
+			noise. This limits efficiency and offers little insight into which portions of the signal drive
 			predictions.<br><br>
 
+			Outside ECG-specific work, there have been numerous ways to improve transformer efficiency. Weight sharing,
+			using the same learned parameters across multiple layers, reduces model size and computation while
+			maintaining performance [<a href="#ref_share">4</a>]. Sparse attention mechanisms limit the number of token
+			interactions, focusing computation on the most relevant parts of the input. These techniques improve
+			efficiency but do not adapt computation based on input complexity [<a href="#ref_sparse">5</a>].<br><br>
 
-			Outside ECG-specific work, adaptive computation has been explored in deep learning more broadly.
-			Mechanisms such as Adaptive Computation Time (ACT) allow models to dynamically allocate processing steps per
+			Mechanisms such as Adaptive Computation Time (ACT) for RNNs allow models to dynamically allocate processing
+			steps per
 			input, halting early on simpler cases and devoting more computation to difficult ones [<a
 				href="#ref_graves">4</a>]. Extensions of this idea to vision transformer architectures include adaptive
 			token halting, where low-importance spatial tokens do not progress to deeper layers and are removed from
 			computation during inference time. This reduces computational
 			cost across depth and has demonstrated preserved accuracy, also revealing interpretable correlations between
-			input difficulty and computation depth [<ahref="#ref_avit">5</a>]. <br><br>
+			input difficulty and computation depth [<a href="#ref_avit">5</a>]. <br><br>
 
-				Another adaptive approach involves learned class-relevant embeddings, essentially reducing the number of
-				tokens processed. More commonly seen in image classification tasks, the transformer dynamically
-				identifies the most informative regions of an input by learning which patch embeddings are most relevant
-				for the target class. Instead of processing every patch uniformly, the model assigns importance scores
-				to each patch and retains only those that contribute meaningfully to the prediction. The retained
-				patches are both task-dependent and input-adaptive, allowing the model to concentrate computational
-				resources where they matter most [<a href="#ref_jiang">6</a>].<br><br>
+			Another adaptive approach involves learning class-relevant tokens, essentially reducing the number of tokens
+			processed. More commonly seen in image classification tasks, the transformer dynamically identifies the most
+			informative regions of an input by learning which patch embeddings are most relevant for the target class.
+			Instead of processing every patch uniformly, the model assigns importance scores to each patch and retains
+			only those that contribute meaningfully to the prediction. This allows the model to concentrate
+			computational resources where they matter most [<a href="#ref_jiang">6</a>].<br><br>
 
-				Applying adaptive computation to ECG signal analysis is particularly promising because cardiac signals
-				vary widely
-				in morphology, rhythm, and noise. An adaptive-depth transformer could allocate fewer layers to
-				straightforward sinus rhythms, while dedicating more processing to arrhythmias with complex or ambiguous
-				patterns. This dynamic allocation offers several advantages: improved computational efficiency, better
-				handling of noisy or low-confidence inputs, and insights into which features or time spans drive
-				classification decisions.<br><br>
+			We want to explore adaptive computation methods for ECG signal analysis because arrhythmic episodes can
+			often occupy only small portions of an otherwise normal signal, providing a framework for efficient anomaly
+			detection in long time series signals. An adaptive transformer could learn to allocate fewer layers to
+			straightforward sinus rhythms, or process only patches that correspond to ECG signal morphology, such as the
+			QRS complex. <br><br>
 
-				Altogether, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
-				automated ECG classification, and adaptive computation in other domains demonstrates the benefits of
-				variable-depth processing. Our proposed approach combines these insights for time-series classification.
-				We leverage CNNs and transformers to
-				capture local and global ECG context while incorporating adaptive computation mechanisms to create a
-				classifier with input-dependent
-				computation. This framework addresses the limitations of fixed-depth models and provides a
-				resource-aware,
-				interpretable, and robust paradigm for ECG signal classification.<br><br>
+			Altogether, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
+			automated ECG classification, and adaptive computation in other domains demonstrates the benefits of
+			variable-depth processing. Our proposed approach combines these insights for time-series classification.
+			We leverage CNNs and transformers to
+			capture local and global ECG context while incorporating adaptive computation mechanisms to create a
+			classifier with input-dependent
+			computation. This framework addresses the limitations of fixed-depth models and provides a
+			resource-aware,
+			interpretable, and robust paradigm for ECG signal classification.<br><br>
 
 		</div>
 	</div>
@@ -606,7 +604,8 @@
 				<tr style="background-color: #fafafa;">
 					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Decision Mechanism</td>
 					<td style="border: 1px solid #999; padding: 12px;"><i>h</i><sub><i>l</i></sub> = σ(γ ·
-						<i>z</i><sub><i>l</i></sub>[0] − β)<br>Single scalar halting probability computed per layer</td>
+						<i>z</i><sub><i>l</i></sub>[0] − β)<br>Single scalar halting probability computed per layer
+					</td>
 					<td style="border: 1px solid #999; padding: 12px;"><i>M</i><sub>p,<i>l</i></sub> ∈
 						(0,1)<sup>100</sup>, <i>M</i><sub>h,<i>l</i></sub> ∈ (0,1)<sup>H</sup>,
 						<i>M</i><sub>b,<i>l</i></sub> ∈ (0,1)<br>Three hierarchical gate functions applied per layer
@@ -619,7 +618,8 @@
 						sum of layer outputs by halting probabilities</td>
 					<td style="border: 1px solid #999; padding: 12px;">X<sub>masked</sub> = [x<sub>cls</sub>,
 						<i>M</i><sub>p,<i>l</i></sub> ⊙ x[1:]]<br>Element-wise multiplicative gating of patches, heads,
-						and blocks</td>
+						and blocks
+					</td>
 				</tr>
 				<tr style="background-color: #fafafa;">
 					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Loss Function</td>
@@ -642,7 +642,8 @@
 					<td style="border: 1px solid #999; padding: 12px;">Maintains cumulative halting mass <i>c</i>,
 						remainder <i>R</i>, and active mask<br>Halting condition: <i>c</i> ≥ 1 − ε where ε = 0.05</td>
 					<td style="border: 1px solid #999; padding: 12px;">Maintains accumulated context vector
-						<i>Z</i><sub><i>l</i></sub><br>Decision network processes information from preceding layers</td>
+						<i>Z</i><sub><i>l</i></sub><br>Decision network processes information from preceding layers
+					</td>
 				</tr>
 				<tr>
 					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Training Procedure</td>
@@ -770,18 +771,24 @@
 
 					ECGformer: Leveraging transformer for ECG heartbeat arrhythmia classification</a>,
 				Akan, et al., 2024<br><br>
-				<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
+				<a id="ref_share"></a>[4] <a href="https://arxiv.org/abs/1909.11942">
+					ALBERT: A Lite BERT for Self-supervised Learning of Language Representations</a>, Lan et al.,
+				2019<br><br>
+				<a id="ref_sparse"></a>[5] <a href="https://arxiv.org/abs/2406.16747">
+					Sparser is Faster and Less is More: Efficient Sparse Attention for Long-Range Transformers</a>, Lou
+				et al., 2024<br><br>
+				<a id="ref_graves"></a>[6] <a href="https://arxiv.org/abs/1603.08983">
 					Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
-				<a id="ref_avit"></a>[5] <a
+				<a id="ref_avit"></a>[7] <a
 					href="https://openaccess.thecvf.com/content/CVPR2022/papers/Yin_A-ViT_Adaptive_Tokens_for_Efficient_Vision_Transformer_CVPR_2022_paper.pdf">
 					A-ViT: Adaptive Tokens for Efficient Vision Transformer</a>, Yin et al., 2022 <br><br>
-				<a id="ref_jiang"></a>[6] <a href="https://arxiv.org/html/2405.03722v1">
+				<a id="ref_jiang"></a>[8] <a href="https://arxiv.org/html/2405.03722v1">
 					Class-relevant Patch Embedding Selection for Few-Shot Image Classification</a>, Yuan et al., 2024
 				<br><br>
-				<a id="ref_moody_mark_1983"></a>[7] <a href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
+				<a id="ref_moody_mark_1983"></a>[9] <a href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
 					A new method for detecting atrial fibrillation using RR intervals</a>,
 				Moody and Mark, 1983<br><br>
-				<a id="ref_physionet_afdb"></a>[8] <a href="https://physionet.org/content/afdb/1.0.0/">
+				<a id="ref_physionet_afdb"></a>[10] <a href="https://physionet.org/content/afdb/1.0.0/">
 					MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
 
 			</div>
