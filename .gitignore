@@ -2,7 +2,7 @@ mit_data
 mit-bih-arrhythmia-database-*
 /data/
 /checkpoints/
-/archive/*
+/archive/
 
 .rug_*
 .vscode
