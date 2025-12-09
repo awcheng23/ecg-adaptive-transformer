@@ -133,10 +133,10 @@ def main():
     # training
     # -----------------------
     best_val_loss = float("inf")
-    model_path = "checkpoints/selective_transformer_afib.pth"
-    metrics_path = "checkpoints/selective_afib_metrics.pt"
-    flops_path = "checkpoints/selective_flops_per_step_afib.pt"
-    flops_path_classwise = "checkpoints/selective_flops_per_step_afib_classwise.pt"
+    model_path = "checkpoints/adaptive_transformer_afib.pth"
+    metrics_path = "checkpoints/adaptive_afib_metrics.pt"
+    flops_path = "checkpoints/adaptive_flops_per_step_afib.pt"
+    flops_path_classwise = "checkpoints/adaptive_flops_per_step_afib_classwise.pt"
 
     for epoch in range(num_epochs):
         model.train()
