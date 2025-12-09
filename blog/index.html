@@ -873,7 +873,17 @@
 					style="max-width: 90%; height: auto;">
 			</div>
 
-			The Selection model's active parameter fraction reveals the sparsity mechanism in action. Starting at ~30% activity, the model begins training with moderately sparse gating—this initial value reflects the Gumbel-Softmax temperature initialization and random gate weights that favor some pruning even before learning. During Warmup (0-2K steps), activity drops sharply to ~15-20% as gates rapidly discover that aggressive sparsity is viable without accuracy loss. The Active Learning phase (2-6K steps) exhibits high variance in activity levels (ranging 10-25%) as gates explore the accuracy-sparsity trade-off, corresponding to the FLOPs volatility observed earlier. By Stabilization (10-12.3K steps), activity converges to ~14% (86% sparsity), meaning only 1 in 7 patches/heads/blocks remain active on average. This learned sparsity pattern directly validates <b>H2</b>: the model adapts computation on a per-input basis, allocating resources only where needed. The convergence to extreme sparsity while maintaining 99.26% accuracy confirms <b>H1</b>—computational efficiency without performance degradation.<br><br>
+			The Selection model's active parameter fraction reveals the sparsity mechanism in action. Starting at ~30%
+			activity, the model begins training with moderately sparse gating—this initial value reflects the
+			Gumbel-Softmax temperature initialization and random gate weights that favor some pruning even before
+			learning. During Warmup (0-2K steps), activity drops sharply to ~15-20% as gates rapidly discover that
+			aggressive sparsity is viable without accuracy loss. The Active Learning phase (2-6K steps) exhibits high
+			variance in activity levels (ranging 10-25%) as gates explore the accuracy-sparsity trade-off, corresponding
+			to the FLOPs volatility observed earlier. By Stabilization (10-12.3K steps), activity converges to ~14% (86%
+			sparsity), meaning only 1 in 7 patches/heads/blocks remain active on average. This learned sparsity pattern
+			directly validates <b>H2</b>: the model adapts computation on a per-input basis, allocating resources only
+			where needed. The convergence to extreme sparsity while maintaining 99.26% accuracy confirms
+			<b>H1</b>—computational efficiency without performance degradation.<br><br>
 
 		</div>
 		<div class="margin-right-block" ;">
