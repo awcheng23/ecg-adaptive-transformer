@@ -299,7 +299,7 @@
 				<a href="#prior_work">Prior Work</a><br><br>
 				<a href="#methodology">Methodology</a><br><br>
 				<a href="#experimental_results">Experimental Results</a><br><br>
-				<a href="#implications_and_limitations">Implications and Limitations</a><br><br>
+				<a href="#technical">Technical Implementation Details</a><br><br>
 				<a href="#conclusion">Conclusion</a><br><br>
 			</div>
 		</div>
@@ -938,41 +938,13 @@
 		</div>
 	</div>
 
-
-
-	<div class="content-margin-container" id="implications_and_limitations">
+	<div class="content-margin-container" id="technical">
 		<div class="margin-left-block">
 		</div>
 		<div class="main-content-block">
 			<div class="main-section-divider"></div>
-			<h1 class="section-title">Implications and Limitations</h1>
+			<h1 class="section-title">Technical Implementation Details</h1>
 
-			This work shows that adaptive computation can be integrated into transformer-based ECG models to reduce
-			average depth without hurting classification performance. The core idea is that the model learns an
-			input-dependent stopping rule: easy segments should halt early, while harder or noisier windows should
-			trigger deeper layers. When this allocation aligns with signal complexity, it suggests that the model is
-			learning a meaningful hierarchy of features—early layers capture the broad morphological structure required
-			for normal rhythms, while later layers become specialized for ambiguous patterns or arrhythmias that require
-			more global temporal context. <br><br>
-
-			There are several limitations worth noting. The halting mechanism we use is intentionally simple, and a more
-			expressive controller might learn more nuanced routing behavior. Our comparisons are restricted to a
-			fixed-depth transformer baseline, so it is still unclear how adaptive computation stacks up against other
-			efficiency methods such as pruning, quantization, or knowledge distillation. We also report compute in terms
-			of FLOPs rather than real hardware measurements, meaning the practical speedup on devices like wearables or
-			mobile processors remains unverified. Finally, we fix hyperparameters such as the regularization weight αₚ;
-			understanding how sensitive the halting behavior is to this choice may be important for stability and
-			reproducibility.<br><br>
-
-			Future extensions should evaluate adaptive computation across different backbone architectures and other
-			physiological time-series tasks, where variability in signal difficulty is similarly high. Combining
-			adaptive halting with additional efficiency techniques could further reduce computational cost without
-			compromising accuracy. Most importantly, validating results on diverse ECG datasets and measuring actual
-			latency and memory usage on hardware would clarify the real-world impact. These directions would help
-			determine when adaptive depth truly provides an advantage, both as an efficiency mechanism and as a way to
-			interpret how models allocate computation across complex biosignals.<br><br>
-		</div>
-		<div class="margin-right-block">
 		</div>
 	</div>
 
@@ -983,19 +955,30 @@
 			<div class="main-section-divider"></div>
 			<h1 class="section-title">Conclusion</h1>
 
-			This work confirms that it is possible to dynamically allocate computation in ECG classification without
-			sacrificing diagnostic accuracy, enabling both computational efficiency and input-adaptive behavior.
-			Adaptive-depth transformers—through either early halting or learned sparsity gates—provide a framework for
-			analyzing and comparing the computational requirements of different cardiac signals. This approach not only
-			allows for adaptive computation capability but also offers interpretability by revealing which signal
-			characteristics drive model depth allocation.<br><br>
+			This work demonstrates that transformer-based ECG models can achieve significant computational
+			efficiency through input-dependent routing mechanisms. Both early-halting and learned-sparsity approaches
+			reduce average model depth without sacrificing diagnostic accuracy—Adaptive-Halting achieves 32% FLOPs
+			reduction while maintaining 99.33% accuracy, while Adaptive-Selection achieves 91.1% reduction at 99.26%
+			accuracy. The observation that models autonomously learn to allocate deeper computation to morphologically
+			complex signals suggests that transformer architectures, when equipped with adaptive depth mechanisms, can
+			learn interpretable hierarchies of feature abstraction: shallow layers extract signal morphology sufficient
+			for routine patterns, while deeper layers disambiguate complex arrhythmias.<br><br>
 
-			To further investigate the robustness and generalizability of this method, it would be worthwhile to test
-			against even more varied and complex datasets, including multi-lead ECGs, diverse arrhythmia types, and
-			real-world recordings with varying noise profiles. Additionally, exploring how the computational cost
-			regularization (ponder loss or compute_fraction) can be extended to other biomedical signal modalities and
-			deep learning architectures would strengthen the applicability of adaptive computation in clinical
-			settings.<br><br>
+			From an architectural perspective, this work highlights the interplay between model capacity, regularization
+			design, and learned computation allocation. The ponder loss regularization enables explicit optimization of
+			the efficiency-accuracy frontier without post-hoc pruning or distillation, making the computation budget a
+			design parameter rather than a computational constraint. However, practical deployment of such methods
+			requires addressing several architectural and empirical gaps. The expressiveness of the halting controller
+			remains a fundamental question—the binary early-exit mechanism may not capture fine-grained routing patterns
+			in deeper layers. Comparative architectural studies against pruning, quantization, and knowledge
+			distillation on equivalent model families would clarify whether adaptive depth represents a distinct
+			efficiency paradigm or a complementary technique. Furthermore, theoretical understanding of why
+			input-dependent depth allocation succeeds in time-series classification remains limited; future work should
+			investigate the relationship between signal complexity metrics, layer-wise feature specialization, and
+			optimal halting depth through causal analysis and attention visualization. Extending this framework to
+			multi-lead recordings, diverse cardiac pathologies, and other physiological signal modalities would
+			establish whether adaptive depth allocation is a general principle for biomedical deep learning or specific
+			to single-lead ECG classification.<br><br>
 
 		</div>
 		<div class="margin-right-block">
