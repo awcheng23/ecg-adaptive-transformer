@@ -839,15 +839,19 @@
 
 			Both adaptive models diverge from the fixed baseline immediately and maintain lower FLOPs throughout
 			training, directly confirming <b>H1</b>. Halting achieves 32% reduction (2.14B → 1.45B) with smooth, stable
-			convergence by step 6K, while Selection achieves 59% reduction (0.91B → 0.37B) through an aggressive initial
-			drop followed by exploration (2-6K steps) and stabilization. The distinct temporal patterns validate
-			<b>H2</b>: both architectures learn when and how to prune computation based on training signals, with
+			convergence by step 6K, while Selection achieves 91.1% reduction (2.76B full-depth → 0.25B effective)
+			through
+			an aggressive initial drop followed by exploration (2-6K steps) and stabilization. The distinct temporal
+			patterns
+			validate <b>H2</b>: both architectures learn when and how to prune computation based on training signals,
+			with
 			Halting employing deterministic depth-based early exiting and Selection using stochastic Gumbel-Softmax
 			gating over patches, heads, and blocks. The emergence of these learned allocation strategies during training
 			supports <b>H3</b>—models adapt computation to signal complexity.<br><br>
 
 			The strategy comparison reveals three distinct learning behaviors. Halting achieves 32% reduction with
-			smooth convergence, while Selection achieves 59% reduction through volatile exploration then stabilization,
+			smooth convergence, while Selection achieves 91.1% reduction through volatile exploration then
+			stabilization,
 			directly supporting <b>H1</b>. Learning speed analysis shows Halting front-loads reduction in the first 2K
 			steps then refines, whereas Selection maintains aggressive reduction through 6K steps. These temporal
 			patterns validate <b>H2</b> and <b>H3</b>: both models learn input-dependent allocation strategies adapted
@@ -862,21 +866,26 @@
 			temporal dynamics. Halting's FLOPs drop steeply in Warmup then plateau with minimal variance, while
 			Selection shows aggressive early reduction followed by high variance during Active Learning as gates explore
 			sparsity patterns. The bottom panels reveal Halting achieves ~32% total reduction with smooth percentage
-			change, while Selection achieves ~60% reduction. Variance analysis (bottom-right) confirms Selection's
+			change, while Selection achieves ~59% reduction during training. At test time, Selection's aggressive
+			sparsity
+			yields ~91% reduction (0.25B effective from 2.76B full-depth). Variance analysis (bottom-right) confirms
+			Selection's
 			exploration phase produces higher instability (σ peaks during Active phase) before converging, validating
 			<b>H4</b>: deterministic halting yields stable, interpretable learning curves, while stochastic gating
 			introduces complexity through exploration.<br><br>
 
-			<h3>Selection Model Activity</h3>
+			<hr>
+			<h1>Selection Model Activity</h1>
 			<div style="text-align: center; margin: 20px 0;">
 				<img src="images/plots/selection_model_activity.png" alt="Selection model active patches over training"
 					style="max-width: 90%; height: auto;">
 			</div>
 
-			The Selection model's active parameter fraction reveals the sparsity mechanism in action. Starting at ~30%
-			activity, the model begins training with moderately sparse gating—this initial value reflects the
-			Gumbel-Softmax temperature initialization and random gate weights that favor some pruning even before
-			learning. During Warmup (0-2K steps), activity drops sharply to ~15-20% as gates rapidly discover that
+			The Selection model assigns each input patch a learned continuation probability using Gumbel-sigmoid
+			gates, enabling dynamic depth selection. Beginning at roughly 30% activity, the model’s initial sparsity
+			arises from the Gumbel-Softmax temperature and randomly initialized gate weights, which naturally bias
+			computations toward early halting prior to training.During Warmup (0-2K steps), activity drops sharply to
+			~15-20% as gates rapidly discover that
 			aggressive sparsity is viable without accuracy loss. The Active Learning phase (2-6K steps) exhibits high
 			variance in activity levels (ranging 10-25%) as gates explore the accuracy-sparsity trade-off, corresponding
 			to the FLOPs volatility observed earlier. By Stabilization (10-12.3K steps), activity converges to ~14% (86%
@@ -888,7 +897,7 @@
 		</div>
 		<div class="margin-right-block" ;">
 
-			<p style="transform: translate(0%, -90%);">
+			<p style="transform: translate(0%, -300%);">
 				<b>Table 1.</b> <i> Comprehensive model performance metrics.</i> All models are evaluated on the same
 				test
 				set
@@ -898,37 +907,26 @@
 				Parameter counts include all trainable weights. WS = weight sharing. Δ Accuracy shows improvement or
 				degradation relative to the fixed baseline.
 			</p>
-			<p style="transform: translate(0%, 50%);">
+			<p style="transform: translate(0%, -200%);">
 				<b>Figure 3.</b> FLOPs per forward pass across training. Fixed (blue) stays flat at 1.92B. Adaptive
 				(No WS, orange) converges to ~1.69B (≈12% reduction) with low variance. Adaptive (WS, magenta)
 				starts higher but settles near ~1.51B while fluctuating more, reflecting the uncertainty from shared
 				weights.
 			</p>
-			<p style="transform: translate(0%, 120%);">
-				<b>Figure 4.</b> Learning strategy comparison across architectures. (Top-left, 2×2 large panel)
-				Training progression overlay: Fixed baseline (dashed blue, constant 1.92B), Adaptive-Halting (orange,
-				drops 2.14B → 1.45B), Adaptive-Selection (red, drops 0.91B → 0.37B) with shaded areas showing
-				efficiency gains relative to Fixed. (Top-right, small panel) Learning speed bar chart: FLOPs
-				reduction percentage per 1K training steps for each model across 12 time windows (0-1K, 1-2K, etc.).
-				(Middle-right, small panel) Final efficiency bar chart: converged FLOPs at end of training (Fixed
-				1.92B, Halting 1.45B, Selection 0.37B). (Bottom, full-width panel) Three text boxes describing each
-				architecture's mechanism: Fixed (constant computation), Adaptive-Halting (depth-based early exit, 32%
-				reduction, stable by 6K), Adaptive-Selection (patch/head/block gating, 59% reduction, aggressive
-				sparsity).
-			</p>
-			<p style="transform: translate(0%, 360%);">
-				<b>Figure 5.</b> Four-quadrant learning phases breakdown with vertical dividers at 2K, 6K, 10K steps
-				marking Warmup, Active Learning, Refinement, and Stabilization phases. (Top-left) Halting model:
-				FLOPs vs. training step with filled area under smoothed curve, showing steep Warmup drop then plateau,
-				annotated with phase labels. (Top-right) Selection model: FLOPs vs. training step with filled area,
-				showing aggressive early drop, volatile Active phase (2-6K), then stabilization, annotated with phase
+			<p style="transform: translate(0%, 75%);">
+				<b>Figure 4.</b> Learning phases breakdown with vertical dividers at 2K, 6K, 10K steps
+				marking Warmup, Active Learning, Refinement, and Stabilization phases. (Top-left) Halting (WS) model:
+				showing steep Warmup drop then plateau,
+				annotated with phase labels. (Top-right) Selection model: showing aggressive early drop, volatile Active
+				phase (2-6K), then stabilization, annotated with phase
 				labels. (Bottom-left) Percent change from initial FLOPs: smoothed curves for both models showing
-				Halting achieving ~32% reduction gradually, Selection achieving ~60% reduction with steeper initial
+				Halting achieving ~32% reduction gradually, Selection achieving ~59% reduction during training with
+				steeper initial
 				trajectory. (Bottom-right) Variance analysis: rolling 200-step standard deviation for both models
 				across training, revealing Halting's consistently low variance vs. Selection's elevated variance
 				during Active Learning phase (2-6K) before decreasing.
 			</p>
-			<p style="transform: translate(0%, 580%);">
+			<p style="transform: translate(0%, 225%);">
 				<b>Figure 6.</b> Selection model active parameter fraction across training steps. Starts at ~30%
 				activity (70% sparsity) due to Gumbel-Softmax temperature initialization and random gate weights that
 				favor moderate pruning before learning. Drops sharply during Warmup (0-2K) to ~15-20% as gates
