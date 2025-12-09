@@ -255,7 +255,8 @@
 	</style>
 
 	<title>Adaptive Computation Transformers for Efficient ECG Time Series Classification</title>
-	<meta property="og:title" content="Adaptive Computation Transformers for Efficient ECG Time Series Classification" />
+	<meta property="og:title"
+		content="Adaptive Computation Transformers for Efficient ECG Time Series Classification" />
 	<meta charset="UTF-8">
 </head>
 
@@ -269,7 +270,8 @@
 				<tr>
 					<td colspan=4>
 						<span
-							style="font-size: 32px; font-family: 'Helvetica', Courier, monospace; /* Adds fallbacks */">Adaptive Computation Transformers for Efficient ECG Time Series Classification</span>
+							style="font-size: 32px; font-family: 'Helvetica', Courier, monospace; /* Adds fallbacks */">Adaptive
+							Computation Transformers for Efficient ECG Time Series Classification</span>
 					</td>
 				</tr>`
 				<tr>
@@ -372,9 +374,11 @@
 		<div class="margin-left-block"></div>
 
 		<div class="main-content-block">
-		<div class="main-section-divider"></div>
-		<h1 class="section-title" id="methodology">Related Work</h1>			Automated ECG classification has evolved significantly with deep learning, beginning with convolutional and
-			recurrent architectures and moving toward transformer-based approaches. Deep learning methods typically apply
+			<div class="main-section-divider"></div>
+			<h1 class="section-title" id="methodology">Related Work</h1> Automated ECG classification has evolved
+			significantly with deep learning, beginning with convolutional and
+			recurrent architectures and moving toward transformer-based approaches. Deep learning methods typically
+			apply
 			convolutional networks to ECG waveforms, sometimes transforming the signals into spectral or time-frequency
 			representations to better capture morphological and frequency-domain features. These models effectively
 			classify common arrhythmias and establish strong benchmark performance, but they process entire segments
@@ -397,24 +401,37 @@
 			Outside ECG-specific work, adaptive computation has been explored in deep learning more broadly.
 			Mechanisms such as Adaptive Computation Time (ACT) allow models to dynamically allocate processing steps per
 			input, halting early on simpler cases and devoting more computation to difficult ones [<a
-            href="#ref_graves">4</a>]. Extensions of this idea to vision transformer architectures include adaptive token halting, where low-importance spatial tokens do not progress to deeper layers and are removed from computation during inference time. This reduces computational
-			cost across depth and has demonstrated preserved accuracy, also revealing interpretable correlations between input difficulty and computation depth [<ahref="#ref_avit">5</a>]. <br><br>
+				href="#ref_graves">4</a>]. Extensions of this idea to vision transformer architectures include adaptive
+			token halting, where low-importance spatial tokens do not progress to deeper layers and are removed from
+			computation during inference time. This reduces computational
+			cost across depth and has demonstrated preserved accuracy, also revealing interpretable correlations between
+			input difficulty and computation depth [<ahref="#ref_avit">5</a>]. <br><br>
 
-            Another adaptive approach involves learned class-relevant embeddings, essentially reducing the number of tokens processed. More commonly seen in image classification tasks, the transformer dynamically identifies the most informative regions of an input by learning which patch embeddings are most relevant for the target class. Instead of processing every patch uniformly, the model assigns importance scores to each patch and retains only those that contribute meaningfully to the prediction. The retained patches are both task-dependent and input-adaptive, allowing the model to concentrate computational resources where they matter most [<a href="#ref_jiang">6</a>].<br><br>
+				Another adaptive approach involves learned class-relevant embeddings, essentially reducing the number of
+				tokens processed. More commonly seen in image classification tasks, the transformer dynamically
+				identifies the most informative regions of an input by learning which patch embeddings are most relevant
+				for the target class. Instead of processing every patch uniformly, the model assigns importance scores
+				to each patch and retains only those that contribute meaningfully to the prediction. The retained
+				patches are both task-dependent and input-adaptive, allowing the model to concentrate computational
+				resources where they matter most [<a href="#ref_jiang">6</a>].<br><br>
 
-			Applying adaptive computation to ECG signal analysis is particularly promising because cardiac signals vary widely
-			in morphology, rhythm, and noise. An adaptive-depth transformer could allocate fewer layers to
-			straightforward sinus rhythms, while dedicating more processing to arrhythmias with complex or ambiguous
-			patterns. This dynamic allocation offers several advantages: improved computational efficiency, better
-			handling of noisy or low-confidence inputs, and insights into which features or time spans drive
-			classification decisions.<br><br>
+				Applying adaptive computation to ECG signal analysis is particularly promising because cardiac signals
+				vary widely
+				in morphology, rhythm, and noise. An adaptive-depth transformer could allocate fewer layers to
+				straightforward sinus rhythms, while dedicating more processing to arrhythmias with complex or ambiguous
+				patterns. This dynamic allocation offers several advantages: improved computational efficiency, better
+				handling of noisy or low-confidence inputs, and insights into which features or time spans drive
+				classification decisions.<br><br>
 
-			Altogether, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
-			automated ECG classification, and adaptive computation in other domains demonstrates the benefits of
-			variable-depth processing. Our proposed approach combines these insights for time-series classification. We leverage CNNs and transformers to
-			capture local and global ECG context while incorporating adaptive computation mechanisms to create a classifier with input-dependent
-			computation. This framework addresses the limitations of fixed-depth models and provides a resource-aware,
-			interpretable, and robust paradigm for ECG signal classification.<br><br>
+				Altogether, prior work in CNNs, RNNs, and transformers establishes the feasibility and high accuracy of
+				automated ECG classification, and adaptive computation in other domains demonstrates the benefits of
+				variable-depth processing. Our proposed approach combines these insights for time-series classification.
+				We leverage CNNs and transformers to
+				capture local and global ECG context while incorporating adaptive computation mechanisms to create a
+				classifier with input-dependent
+				computation. This framework addresses the limitations of fixed-depth models and provides a
+				resource-aware,
+				interpretable, and robust paradigm for ECG signal classification.<br><br>
 
 		</div>
 	</div>
@@ -430,19 +447,30 @@
 			<i>Dataset and Preprocessing:</i><br><br>
 			All experiments use the MIT-BIH Atrial Fibrillation Database ([<a href="#ref_moody_mark_1983">5</a>], [<a
 				href="#ref_physionet_afdb">6</a>]), comprising 23 ten-hour ECG recordings sampled
-			at 250 Hz. We use the first channel of the recording to stay consistent with prior work. Each signal has a list of rhythm annotations that mark continuous intervals of time. We segment each signal into non-overlapping 30-second windows (7500 samples), labeled as
-			normal (class 0) if the segment lies entirely in a sinus rhythm (N) interval, and abnormal (class 1) if it overlaps with an AFIB (atrial fibrillation), AFL (atrial flutter), or J (AV junctional rhythm) interval.<br><br>
+			at 250 Hz. We use the first channel of the recording to stay consistent with prior work. Each signal has a
+			list of rhythm annotations that mark continuous intervals of time. We segment each signal into
+			non-overlapping 30-second windows (7500 samples), labeled as
+			normal (class 0) if the segment lies entirely in a sinus rhythm (N) interval, and abnormal (class 1) if it
+			overlaps with an AFIB (atrial fibrillation), AFL (atrial flutter), or J (AV junctional rhythm)
+			interval.<br><br>
 
-			We preprocess the signals with a Butterworth bandpass filter (0.5–45 Hz) for noise and min-max normalization to the range [0,1]. The dataset is split into 70% (19,672 segments) for training, 15% (4,216) validation, and 15% (4,216) test.
+			We preprocess the signals with a Butterworth bandpass filter (0.5–45 Hz) for noise and min-max normalization
+			to the range [0,1]. The dataset is split into 70% (19,672 segments) for training, 15% (4,216) validation,
+			and 15% (4,216) test.
 			Balanced class weights are applied during training due to class imbalance (~60% normal, ~40%
 			abnormal).<br><br>
 
 			<hr>
 			<h1>Fixed-Depth Baseline Model</h1>
 
-			The baseline architecture comprises four components: CNN-based patch embedding, sinusoidal positional encoding, four transformer encoder layers, and an MLP classification head.<br><br>
+			The baseline architecture comprises four components: CNN-based patch embedding, sinusoidal positional
+			encoding, four transformer encoder layers, and an MLP classification head.<br><br>
 
-			<b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row represents a 0.3-second temporal patch.<br><br>
+			<b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D
+			convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with
+			batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs
+			non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
+			represents a 0.3-second temporal patch.<br><br>
 
 			<b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
@@ -450,45 +478,77 @@
 				PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)
 			</div>
 			<br>
-			<b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of 2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension 256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The transformation at layer <i>l</i> is:
+			<b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of
+			2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension
+			256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The
+			transformation at layer <i>l</i> is:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> + MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
-				<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> + FFN(<i>Z</i>'<sub><i>l</i></sub>))
+				<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
+				MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
+				<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
+				FFN(<i>Z</i>'<sub><i>l</i></sub>))
 			</div>
 			<br>
-			<b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100) Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed through a two-layer MLP: a linear layer (128 → 128) with ReLU and dropout (0.1), followed by a final linear layer (128 → 2) producing logits for binary classification.<br><br>
+			<b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100)
+			Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed
+			through a two-layer MLP: a linear layer (128 → 128) with ReLU and dropout (0.1), followed by a final linear
+			layer (128 → 2) producing logits for binary classification.<br><br>
 
 			<b>Training Objective:</b> The model is trained with weighted cross-entropy loss:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				<i>L</i><sub>task</sub> = − Σ<sub><i>c</i></sub> <i>w</i><sub><i>c</i></sub> <i>y</i><sub><i>c</i></sub> log σ(<i>f</i>(<i>x</i>)<sub><i>c</i></sub>)
+				<i>L</i><sub>task</sub> = − Σ<sub><i>c</i></sub> <i>w</i><sub><i>c</i></sub> <i>y</i><sub><i>c</i></sub>
+				log σ(<i>f</i>(<i>x</i>)<sub><i>c</i></sub>)
 			</div>
 			<br>
-			where <i>w</i><sub><i>c</i></sub> are balanced class weights and σ is the softmax function. We use the AdamW optimizer with learning rate 3×10<sup>−4</sup>, weight decay 10<sup>−4</sup>, gradient clipping at norm 1.0, batch size 32, and train for 20 epochs. All inputs traverse all four transformer layers, yielding approximately 240k trainable parameters.<br><br>
+			where <i>w</i><sub><i>c</i></sub> are balanced class weights and σ is the softmax function. We use the AdamW
+			optimizer with learning rate 3×10<sup>−4</sup>, weight decay 10<sup>−4</sup>, gradient clipping at norm 1.0,
+			batch size 32, and train for 20 epochs. All inputs traverse all four transformer layers, yielding
+			approximately 240k trainable parameters.<br><br>
 
 			<hr>
 			<h1>Adaptive-Depth Transformer Model</h1>
 
-			The adaptive model shares the same CNN patch embedding, positional encoding, and classification head as the baseline, but replaces the fixed transformer stack with an Adaptive Computation Time (ACT)-style halting mechanism [<a href="#ref_graves">4</a>]. This enables per-sample, per-layer halting decisions, allowing simple inputs to exit early while complex inputs traverse more layers.<br><br>
+			The adaptive model shares the same CNN patch embedding, positional encoding, and classification head as the
+			baseline, but replaces the fixed transformer stack with an Adaptive Computation Time (ACT)-style halting
+			mechanism [<a href="#ref_graves">4</a>]. This enables per-sample, per-layer halting decisions, allowing
+			simple inputs to exit early while complex inputs traverse more layers.<br><br>
 
-			<b>Halting Mechanism:</b> At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after computing the global representation <i>z</i><sub><i>l</i></sub> = (1/100) Σ<sub><i>p</i></sub> <i>Z</i><sub><i>l</i></sub>[<i>p</i>], the halting probability is computed as:
+			<b>Halting Mechanism:</b> At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after computing the global
+			representation <i>z</i><sub><i>l</i></sub> = (1/100) Σ<sub><i>p</i></sub>
+			<i>Z</i><sub><i>l</i></sub>[<i>p</i>], the halting probability is computed as:
 			<br><br>
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
 				<i>h</i><sub><i>l</i></sub> = σ(γ · <i>z</i><sub><i>l</i></sub>[0] − β)
 			</div>
 			<br>
-			where γ and β are learned scalar parameters initialized to 1.0, and the final layer (layer 3) forces halting by setting <i>h</i><sub>3</sub> = 1. For each sample, we maintain three state variables: cumulative halting mass <i>c</i> (initially 0), remainder mass <i>R</i> (initially 1), and an active mask (initially 1). At each layer, we update <i>c</i> ← <i>c</i> + <i>h</i><sub><i>l</i></sub> · mask. If <i>c</i> ≥ 1 − ε (where ε = 0.05), the sample halts and contributes <i>R</i> · <i>z</i><sub><i>l</i></sub> to the output; otherwise, it continues processing and contributes <i>h</i><sub><i>l</i></sub> · <i>z</i><sub><i>l</i></sub> to the output while updating <i>R</i> ← <i>R</i> − <i>h</i><sub><i>l</i></sub>. The final representation is the weighted sum <b>output</b> = Σ<sub><i>l</i></sub> (δ<sub>1,<i>l</i></sub> + δ<sub>2,<i>l</i></sub>).<br><br>
+			where γ and β are learned scalar parameters initialized to 1.0, and the final layer (layer 3) forces halting
+			by setting <i>h</i><sub>3</sub> = 1. For each sample, we maintain three state variables: cumulative halting
+			mass <i>c</i> (initially 0), remainder mass <i>R</i> (initially 1), and an active mask (initially 1). At
+			each layer, we update <i>c</i> ← <i>c</i> + <i>h</i><sub><i>l</i></sub> · mask. If <i>c</i> ≥ 1 − ε (where ε
+			= 0.05), the sample halts and contributes <i>R</i> · <i>z</i><sub><i>l</i></sub> to the output; otherwise,
+			it continues processing and contributes <i>h</i><sub><i>l</i></sub> · <i>z</i><sub><i>l</i></sub> to the
+			output while updating <i>R</i> ← <i>R</i> − <i>h</i><sub><i>l</i></sub>. The final representation is the
+			weighted sum <b>output</b> = Σ<sub><i>l</i></sub> (δ<sub>1,<i>l</i></sub> + δ<sub>2,<i>l</i></sub>).<br><br>
 
-			<b>Training Objective:</b> The adaptive model is trained with a composite loss combining task accuracy and computational cost:
+			<b>Training Objective:</b> The adaptive model is trained with a composite loss combining task accuracy and
+			computational cost:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
 				<i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[ρ]
 			</div>
 			<br>
-			where ρ is the per-sample ponder cost (effective depth in layers) and α<sub>p</sub> = 5×10<sup>−4</sup> is the ponder loss weight. The halting parameters γ and β are learned via backpropagation along with all other model weights. During inference, each sample adaptively traverses between 1 and 4 layers, with the per-sample depth ρ tracked for subsequent analysis.<br><br>
+			where ρ is the per-sample ponder cost (effective depth in layers) and α<sub>p</sub> = 5×10<sup>−4</sup> is
+			the ponder loss weight. The halting parameters γ and β are learned via backpropagation along with all other
+			model weights. During inference, each sample adaptively traverses between 1 and 4 layers, with the
+			per-sample depth ρ tracked for subsequent analysis.<br><br>
 
-					<hr>
-					<h1>Adaptive-Selection Transformer Model</h1>
-					While the adaptive-halting model uses early stopping to dynamically reduce depth, the adaptive-selection model takes a complementary approach by employing learned sparsity gates to skip computation at the patch, head, and block levels within a fixed four-layer depth. Rather than deciding whether to process at all, the selection model decides what to process, achieving computational savings through fine-grained pruning of redundant tokens, attention heads, and entire transformer blocks.<br><br>
-			
+			<hr>
+			<h1>Adaptive-Selection Transformer Model</h1>
+			While the adaptive-halting model uses early stopping to dynamically reduce depth, the adaptive-selection
+			model takes a complementary approach by employing learned sparsity gates to skip computation at the patch,
+			head, and block levels within a fixed four-layer depth. Rather than deciding whether to process at all, the
+			selection model decides what to process, achieving computational savings through fine-grained pruning of
+			redundant tokens, attention heads, and entire transformer blocks.<br><br>
+
 			<b>Gate Architecture:</b> At each layer, the model produces three learnable gate functions:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
 				<i>M</i><sub>p,<i>l</i></sub> ∈ (0,1)<sup>100</sup>: patch (token) selection at layer <i>l</i><br>
@@ -496,165 +556,240 @@
 				<i>M</i><sub>b,<i>l</i></sub> ∈ (0,1): block-wide gating at layer <i>l</i>
 			</div>
 			<br>
-			These gates are computed per-sample from accumulated context <i>Z</i><sub><i>l</i></sub> via a small MLP that processes <i>z</i><sub>proc</sub> = ReLU(W<sub>1</sub> · <i>Z</i><sub><i>l</i></sub> + <i>b</i><sub>1</sub>) and then generates logits for each gate type. Gumbel-sigmoid relaxation enables differentiable training, while thresholding at inference produces discrete sparsity patterns.<br><br>
+			These gates are computed per-sample from accumulated context <i>Z</i><sub><i>l</i></sub> via a small MLP
+			that processes <i>z</i><sub>proc</sub> = ReLU(W<sub>1</sub> · <i>Z</i><sub><i>l</i></sub> +
+			<i>b</i><sub>1</sub>) and then generates logits for each gate type. Gumbel-sigmoid relaxation enables
+			differentiable training, while thresholding at inference produces discrete sparsity patterns.<br><br>
 
-			<b>Gate Application and FLOPs:</b> The patch gate masks token embeddings as X<sub>masked</sub> = [x<sub>cls</sub>, <i>M</i><sub>p,<i>l</i></sub>[1:] ⊙ x[1:]], where the class token is always retained. The head gate masks attention heads via attention<sub>output</sub> ⊙ <i>M</i><sub>h,<i>l</i></sub>, and the block gate modulates residual connections as X ← X + <i>M</i><sub>b,<i>l</i></sub> · (attention<sub>out</sub> + ff<sub>out</sub>). FLOPs are estimated as:
+			<b>Gate Application and FLOPs:</b> The patch gate masks token embeddings as X<sub>masked</sub> =
+			[x<sub>cls</sub>, <i>M</i><sub>p,<i>l</i></sub>[1:] ⊙ x[1:]], where the class token is always retained. The
+			head gate masks attention heads via attention<sub>output</sub> ⊙ <i>M</i><sub>h,<i>l</i></sub>, and the
+			block gate modulates residual connections as X ← X + <i>M</i><sub>b,<i>l</i></sub> ·
+			(attention<sub>out</sub> + ff<sub>out</sub>). FLOPs are estimated as:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
 				N<sub>eff,<i>l</i></sub> = 1 + <i>M</i><sub>p,<i>l</i></sub>[1:].sum()<br>
-				FLOPs<sub><i>l</i></sub> = (N<sub>eff,<i>l</i></sub> / 100) · (<i>M</i><sub>h,<i>l</i></sub>.sum() / <i>H</i>) · <i>M</i><sub>b,<i>l</i></sub> · FLOPs<sub>dense,<i>l</i></sub><br>
+				FLOPs<sub><i>l</i></sub> = (N<sub>eff,<i>l</i></sub> / 100) · (<i>M</i><sub>h,<i>l</i></sub>.sum() /
+				<i>H</i>) · <i>M</i><sub>b,<i>l</i></sub> · FLOPs<sub>dense,<i>l</i></sub><br>
 				compute_fraction = Σ<sub><i>l</i></sub> FLOPs<sub><i>l</i></sub> / (4 · FLOPs<sub>dense</sub>)
 			</div>
 			<br>
-			The triple product captures multiplicative savings from pruning tokens, heads, and blocks jointly, allowing significant FLOPs reduction when gates cooperate. The compute fraction ranges from 0 to 1, where lower values indicate more aggressive pruning.<br><br>
+			The triple product captures multiplicative savings from pruning tokens, heads, and blocks jointly, allowing
+			significant FLOPs reduction when gates cooperate. The compute fraction ranges from 0 to 1, where lower
+			values indicate more aggressive pruning.<br><br>
 
-			<b>Training Objective:</b> Like the adaptive-halting model, the selection model is trained with a composite loss balancing task accuracy and computation:
+			<b>Training Objective:</b> Like the adaptive-halting model, the selection model is trained with a composite
+			loss balancing task accuracy and computation:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
 				<i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[compute_fraction]
 			</div>
 			<br>
-			where α<sub>p</sub> = 5×10<sup>−4</sup> (same as the halting model). The decision network and gate projections add approximately 5% to the total parameter count, keeping the model comparable in size to the other approaches.<br><br>
+			where α<sub>p</sub> = 5×10<sup>−4</sup> (same as the halting model). The decision network and gate
+			projections add approximately 5% to the total parameter count, keeping the model comparable in size to the
+			other approaches.<br><br>
 
-					<b>Comparison of Adaptive Models:</b><br><br>
-					<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-						<tr style="background-color: #f0f0f0;">
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 18%;">Aspect</td>
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Halting</td>
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Selection</td>
-						</tr>
-						<tr>
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Depth Strategy</td>
-							<td style="border: 1px solid #999; padding: 12px;">Variable depth (1–4 layers) via early stopping mechanism</td>
-							<td style="border: 1px solid #999; padding: 12px;">Fixed depth (always 4 layers); applies intra-layer pruning via learned gate functions</td>
-						</tr>
-						<tr style="background-color: #fafafa;">
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Decision Mechanism</td>
-							<td style="border: 1px solid #999; padding: 12px;"><i>h</i><sub><i>l</i></sub> = σ(γ · <i>z</i><sub><i>l</i></sub>[0] − β)<br>Single scalar halting probability computed per layer</td>
-							<td style="border: 1px solid #999; padding: 12px;"><i>M</i><sub>p,<i>l</i></sub> ∈ (0,1)<sup>100</sup>, <i>M</i><sub>h,<i>l</i></sub> ∈ (0,1)<sup>H</sup>, <i>M</i><sub>b,<i>l</i></sub> ∈ (0,1)<br>Three hierarchical gate functions applied per layer</td>
-						</tr>
-						<tr>
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Output Aggregation</td>
-							<td style="border: 1px solid #999; padding: 12px;"><b>output</b> = Σ<sub><i>l</i>=0</sub><sup>3</sup> (δ<sub>1,<i>l</i></sub> + δ<sub>2,<i>l</i></sub>)<br>Weighted sum of layer outputs by halting probabilities</td>
-							<td style="border: 1px solid #999; padding: 12px;">X<sub>masked</sub> = [x<sub>cls</sub>, <i>M</i><sub>p,<i>l</i></sub> ⊙ x[1:]]<br>Element-wise multiplicative gating of patches, heads, and blocks</td>
-						</tr>
-						<tr style="background-color: #fafafa;">
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Loss Function</td>
-							<td style="border: 1px solid #999; padding: 12px;"><i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[ρ]<br>where ρ ∈ [1, 4] represents the ponder cost in layers</td>
-							<td style="border: 1px solid #999; padding: 12px;"><i>L</i> = <i>L</i><sub>task</sub> + α<sub>p</sub> · 𝔼[compute_fraction]<br>where compute_fraction = Σ<sub><i>l</i></sub> FLOPs<sub><i>l</i></sub> / (4 · FLOPs<sub>dense</sub>)</td>
-						</tr>
-						<tr>
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Computational Cost</td>
-							<td style="border: 1px solid #999; padding: 12px;">FLOPs ∝ ρ<br>Average effective depth: 1.1–4.0 layers</td>
-							<td style="border: 1px solid #999; padding: 12px;">FLOPs<sub><i>l</i></sub> = (N<sub>eff,<i>l</i></sub>/100) · (α<sub>h,<i>l</i></sub>) · <i>M</i><sub>b,<i>l</i></sub> · FLOPs<sub>dense,<i>l</i></sub><br>Typical compute fraction: 0.1–0.3</td>
-						</tr>
-						<tr style="background-color: #fafafa;">
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">State Management</td>
-							<td style="border: 1px solid #999; padding: 12px;">Maintains cumulative halting mass <i>c</i>, remainder <i>R</i>, and active mask<br>Halting condition: <i>c</i> ≥ 1 − ε where ε = 0.05</td>
-							<td style="border: 1px solid #999; padding: 12px;">Maintains accumulated context vector <i>Z</i><sub><i>l</i></sub><br>Decision network processes information from preceding layers</td>
-						</tr>
-						<tr>
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Training Procedure</td>
-							<td style="border: 1px solid #999; padding: 12px;">Backpropagation through halting decisions with α<sub>p</sub> = 5×10<sup>−4</sup> regularization weight</td>
-							<td style="border: 1px solid #999; padding: 12px;">Gumbel-sigmoid relaxation during training; hard thresholding at inference; α<sub>p</sub> = 5×10<sup>−4</sup></td>
-						</tr>
-						<tr style="background-color: #fafafa;">
-							<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Principal Advantage</td>
-							<td style="border: 1px solid #999; padding: 12px;">Interpretable mechanism: terminates processing early for simpler inputs</td>
-							<td style="border: 1px solid #999; padding: 12px;">Superior FLOPs reduction via multiplicative multi-axis pruning (tokens × heads × blocks)</td>
-						</tr>
-					</table>
+			<b>Comparison of Adaptive Models:</b><br><br>
+			<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+				<tr style="background-color: #f0f0f0;">
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 18%;">Aspect</td>
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Halting
+					</td>
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Selection
+					</td>
+				</tr>
+				<tr>
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Depth Strategy</td>
+					<td style="border: 1px solid #999; padding: 12px;">Variable depth (1–4 layers) via early stopping
+						mechanism</td>
+					<td style="border: 1px solid #999; padding: 12px;">Fixed depth (always 4 layers); applies
+						intra-layer pruning via learned gate functions</td>
+				</tr>
+				<tr style="background-color: #fafafa;">
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Decision Mechanism</td>
+					<td style="border: 1px solid #999; padding: 12px;"><i>h</i><sub><i>l</i></sub> = σ(γ ·
+						<i>z</i><sub><i>l</i></sub>[0] − β)<br>Single scalar halting probability computed per layer</td>
+					<td style="border: 1px solid #999; padding: 12px;"><i>M</i><sub>p,<i>l</i></sub> ∈
+						(0,1)<sup>100</sup>, <i>M</i><sub>h,<i>l</i></sub> ∈ (0,1)<sup>H</sup>,
+						<i>M</i><sub>b,<i>l</i></sub> ∈ (0,1)<br>Three hierarchical gate functions applied per layer
+					</td>
+				</tr>
+				<tr>
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Output Aggregation</td>
+					<td style="border: 1px solid #999; padding: 12px;"><b>output</b> =
+						Σ<sub><i>l</i>=0</sub><sup>3</sup> (δ<sub>1,<i>l</i></sub> + δ<sub>2,<i>l</i></sub>)<br>Weighted
+						sum of layer outputs by halting probabilities</td>
+					<td style="border: 1px solid #999; padding: 12px;">X<sub>masked</sub> = [x<sub>cls</sub>,
+						<i>M</i><sub>p,<i>l</i></sub> ⊙ x[1:]]<br>Element-wise multiplicative gating of patches, heads,
+						and blocks</td>
+				</tr>
+				<tr style="background-color: #fafafa;">
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Loss Function</td>
+					<td style="border: 1px solid #999; padding: 12px;"><i>L</i> = <i>L</i><sub>task</sub> +
+						α<sub>p</sub> · 𝔼[ρ]<br>where ρ ∈ [1, 4] represents the ponder cost in layers</td>
+					<td style="border: 1px solid #999; padding: 12px;"><i>L</i> = <i>L</i><sub>task</sub> +
+						α<sub>p</sub> · 𝔼[compute_fraction]<br>where compute_fraction = Σ<sub><i>l</i></sub>
+						FLOPs<sub><i>l</i></sub> / (4 · FLOPs<sub>dense</sub>)</td>
+				</tr>
+				<tr>
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Computational Cost</td>
+					<td style="border: 1px solid #999; padding: 12px;">FLOPs ∝ ρ<br>Average effective depth: 1.1–4.0
+						layers</td>
+					<td style="border: 1px solid #999; padding: 12px;">FLOPs<sub><i>l</i></sub> =
+						(N<sub>eff,<i>l</i></sub>/100) · (α<sub>h,<i>l</i></sub>) · <i>M</i><sub>b,<i>l</i></sub> ·
+						FLOPs<sub>dense,<i>l</i></sub><br>Typical compute fraction: 0.1–0.3</td>
+				</tr>
+				<tr style="background-color: #fafafa;">
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">State Management</td>
+					<td style="border: 1px solid #999; padding: 12px;">Maintains cumulative halting mass <i>c</i>,
+						remainder <i>R</i>, and active mask<br>Halting condition: <i>c</i> ≥ 1 − ε where ε = 0.05</td>
+					<td style="border: 1px solid #999; padding: 12px;">Maintains accumulated context vector
+						<i>Z</i><sub><i>l</i></sub><br>Decision network processes information from preceding layers</td>
+				</tr>
+				<tr>
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Training Procedure</td>
+					<td style="border: 1px solid #999; padding: 12px;">Backpropagation through halting decisions with
+						α<sub>p</sub> = 5×10<sup>−4</sup> regularization weight</td>
+					<td style="border: 1px solid #999; padding: 12px;">Gumbel-sigmoid relaxation during training; hard
+						thresholding at inference; α<sub>p</sub> = 5×10<sup>−4</sup></td>
+				</tr>
+				<tr style="background-color: #fafafa;">
+					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Principal Advantage</td>
+					<td style="border: 1px solid #999; padding: 12px;">Interpretable mechanism: terminates processing
+						early for simpler inputs</td>
+					<td style="border: 1px solid #999; padding: 12px;">Superior FLOPs reduction via multiplicative
+						multi-axis pruning (tokens × heads × blocks)</td>
+				</tr>
+			</table>
 
-					<hr>
-					<h1>Research Hypotheses</h1>
+			<hr>
+			<h1>Research Hypotheses</h1>
 
-					<b>H1: Computational Efficiency.</b> Can adaptive models reduce average computational cost without sacrificing classification accuracy?<br>
-					We hypothesize that both adaptive approaches will achieve comparable test accuracy to the fixed baseline while using fewer FLOPs per sample on average, as measured by effective depth ρ or compute_fraction.<br><br>
+			<b>H1: Computational Efficiency.</b> Can adaptive models reduce average computational cost without
+			sacrificing classification accuracy?<br>
+			We hypothesize that both adaptive approaches will achieve comparable test accuracy to the fixed baseline
+			while using fewer FLOPs per sample on average, as measured by effective depth ρ or compute_fraction.<br><br>
 
-					<b>H2: Input-Dependent Computation.</b> Do adaptive models allocate computation differentially based on input characteristics?<br>
-					We hypothesize that normal sinus rhythm segments (class 0) will receive lower average depth or compute fraction than arrhythmic segments (class 1), reflecting the intuition that regular rhythms require less processing than complex or irregular patterns.<br><br>
+			<b>H2: Input-Dependent Computation.</b> Do adaptive models allocate computation differentially based on
+			input characteristics?<br>
+			We hypothesize that normal sinus rhythm segments (class 0) will receive lower average depth or compute
+			fraction than arrhythmic segments (class 1), reflecting the intuition that regular rhythms require less
+			processing than complex or irregular patterns.<br><br>
 
-					<b>H3: Correlation with Signal Complexity.</b> Does the computation allocated by adaptive models correlate with intrinsic signal characteristics?<br>
-					We hypothesize that samples with higher variance, lower signal-to-noise ratio, or atypical morphology will require traversing more layers or retaining more patches/heads/blocks, demonstrating sensitivity to variability, noise level, and morphological complexity.<br><br>
+			<b>H3: Correlation with Signal Complexity.</b> Does the computation allocated by adaptive models correlate
+			with intrinsic signal characteristics?<br>
+			We hypothesize that samples with higher variance, lower signal-to-noise ratio, or atypical morphology will
+			require traversing more layers or retaining more patches/heads/blocks, demonstrating sensitivity to
+			variability, noise level, and morphological complexity.<br><br>
 
-					<b>H4: Interpretability and Feature Usage.</b> Do adaptive mechanisms provide interpretable insights into which temporal or spatial features drive classification?<br>
-					We hypothesize that for the halting model, early halting will correspond to local feature sufficiency while late halting indicates reliance on global temporal context, and for the selection model, patch and attention head retention patterns will reveal task-relevant time spans and feature dependencies.<br><br>
+			<b>H4: Interpretability and Feature Usage.</b> Do adaptive mechanisms provide interpretable insights into
+			which temporal or spatial features drive classification?<br>
+			We hypothesize that for the halting model, early halting will correspond to local feature sufficiency while
+			late halting indicates reliance on global temporal context, and for the selection model, patch and attention
+			head retention patterns will reveal task-relevant time spans and feature dependencies.<br><br>
+		</div>
+	</div>
+
+
+
+	<div class="content-margin-container" id="implications_and_limitations">
+		<div class="margin-left-block">
+		</div>
+		<div class="main-content-block">
+			<div class="main-section-divider"></div>
+			<h1 class="section-title">Implications and Limitations</h1>
+
+			This work shows that adaptive computation can be integrated into transformer-based ECG models to reduce
+			average depth without hurting classification performance. The core idea is that the model learns an
+			input-dependent stopping rule: easy segments should halt early, while harder or noisier windows should
+			trigger deeper layers. When this allocation aligns with signal complexity, it suggests that the model is
+			learning a meaningful hierarchy of features—early layers capture the broad morphological structure required
+			for normal rhythms, while later layers become specialized for ambiguous patterns or arrhythmias that require
+			more global temporal context. <br><br>
+
+			There are several limitations worth noting. The halting mechanism we use is intentionally simple, and a more
+			expressive controller might learn more nuanced routing behavior. Our comparisons are restricted to a
+			fixed-depth transformer baseline, so it is still unclear how adaptive computation stacks up against other
+			efficiency methods such as pruning, quantization, or knowledge distillation. We also report compute in terms
+			of FLOPs rather than real hardware measurements, meaning the practical speedup on devices like wearables or
+			mobile processors remains unverified. Finally, we fix hyperparameters such as the regularization weight αₚ;
+			understanding how sensitive the halting behavior is to this choice may be important for stability and
+			reproducibility.<br><br>
+
+			Future extensions should evaluate adaptive computation across different backbone architectures and other
+			physiological time-series tasks, where variability in signal difficulty is similarly high. Combining
+			adaptive halting with additional efficiency techniques could further reduce computational cost without
+			compromising accuracy. Most importantly, validating results on diverse ECG datasets and measuring actual
+			latency and memory usage on hardware would clarify the real-world impact. These directions would help
+			determine when adaptive depth truly provides an advantage, both as an efficiency mechanism and as a way to
+			interpret how models allocate computation across complex biosignals.<br><br>
+		</div>
+		<div class="margin-right-block">
+		</div>
+	</div>
+
+	<div class="content-margin-container" id="conclusion">
+		<div class="margin-left-block">
+		</div>
+		<div class="main-content-block">
+			<div class="main-section-divider"></div>
+			<h1 class="section-title">Conclusion</h1>
+
+			This work confirms that it is possible to dynamically allocate computation in ECG classification without
+			sacrificing diagnostic accuracy, enabling both computational efficiency and input-adaptive behavior.
+			Adaptive-depth transformers—through either early halting or learned sparsity gates—provide a framework for
+			analyzing and comparing the computational requirements of different cardiac signals. This approach not only
+			allows for adaptive computation capability but also offers interpretability by revealing which signal
+			characteristics drive model depth allocation.<br><br>
+
+			To further investigate the robustness and generalizability of this method, it would be worthwhile to test
+			against even more varied and complex datasets, including multi-lead ECGs, diverse arrhythmia types, and
+			real-world recordings with varying noise profiles. Additionally, exploring how the computational cost
+			regularization (ponder loss or compute_fraction) can be extended to other biomedical signal modalities and
+			deep learning architectures would strengthen the applicability of adaptive computation in clinical
+			settings.<br><br>
+
+		</div>
+		<div class="margin-right-block">
+		</div>
+	</div>
+
+	<div class="content-margin-container" id="citations">
+		<div class="margin-left-block">
+		</div>
+		<div class="main-content-block">
+			<div class='citation' id="references" style="height:auto"><br>
+				<span style="font-size:16px">References:</span><br><br>
+				<a id="ref_1"></a>[1] <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">
+					ECG-TransCovNet: A hybrid transformer model for accurate arrhythmia detection using
+					Electrocardiogram signals</a>,
+				Shah, et al., 2024<br><br>
+				<a id="ref_ullah"></a>[2] <a href="https://arxiv.org/abs/2005.06902">
+					Classification of Arrhythmia by Using Deep Learning with 2-D ECG Spectral Image
+					Representation</a>,
+				Ullah, et al., 2020<br><br>
+				<a id="ref_akan"></a>[3] <a href="https://arxiv.org/abs/2401.05434">
+
+					ECGformer: Leveraging transformer for ECG heartbeat arrhythmia classification</a>,
+				Akan, et al., 2024<br><br>
+				<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
+					Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
+				<a id="ref_avit"></a>[5] <a
+					href="https://openaccess.thecvf.com/content/CVPR2022/papers/Yin_A-ViT_Adaptive_Tokens_for_Efficient_Vision_Transformer_CVPR_2022_paper.pdf">
+					A-ViT: Adaptive Tokens for Efficient Vision Transformer</a>, Yin et al., 2022 <br><br>
+				<a id="ref_jiang"></a>[6] <a href="https://arxiv.org/html/2405.03722v1">
+					Class-relevant Patch Embedding Selection for Few-Shot Image Classification</a>, Yuan et al., 2024
+				<br><br>
+				<a id="ref_moody_mark_1983"></a>[7] <a href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
+					A new method for detecting atrial fibrillation using RR intervals</a>,
+				Moody and Mark, 1983<br><br>
+				<a id="ref_physionet_afdb"></a>[8] <a href="https://physionet.org/content/afdb/1.0.0/">
+					MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
+
 			</div>
 		</div>
-
-
-
-		<div class="content-margin-container" id="implications_and_limitations">
-			<div class="margin-left-block">
-			</div>
-			<div class="main-content-block">
-				<div class="main-section-divider"></div>
-				<h1 class="section-title">Implications and Limitations</h1>
-
-				This work shows that adaptive computation can be integrated into transformer-based ECG models to reduce average depth without hurting classification performance. The core idea is that the model learns an input-dependent stopping rule: easy segments should halt early, while harder or noisier windows should trigger deeper layers. When this allocation aligns with signal complexity, it suggests that the model is learning a meaningful hierarchy of features—early layers capture the broad morphological structure required for normal rhythms, while later layers become specialized for ambiguous patterns or arrhythmias that require more global temporal context. <br><br>
-
-There are several limitations worth noting. The halting mechanism we use is intentionally simple, and a more expressive controller might learn more nuanced routing behavior. Our comparisons are restricted to a fixed-depth transformer baseline, so it is still unclear how adaptive computation stacks up against other efficiency methods such as pruning, quantization, or knowledge distillation. We also report compute in terms of FLOPs rather than real hardware measurements, meaning the practical speedup on devices like wearables or mobile processors remains unverified. Finally, we fix hyperparameters such as the regularization weight αₚ; understanding how sensitive the halting behavior is to this choice may be important for stability and reproducibility.<br><br>
-
-Future extensions should evaluate adaptive computation across different backbone architectures and other physiological time-series tasks, where variability in signal difficulty is similarly high. Combining adaptive halting with additional efficiency techniques could further reduce computational cost without compromising accuracy. Most importantly, validating results on diverse ECG datasets and measuring actual latency and memory usage on hardware would clarify the real-world impact. These directions would help determine when adaptive depth truly provides an advantage, both as an efficiency mechanism and as a way to interpret how models allocate computation across complex biosignals.<br><br>
-			</div>
-			<div class="margin-right-block">
-			</div>
+		<div class="margin-right-block">
+			<!-- margin notes for reference block here -->
 		</div>
-
-		<div class="content-margin-container" id="conclusion">
-			<div class="margin-left-block">
-			</div>
-			<div class="main-content-block">
-				<div class="main-section-divider"></div>
-				<h1 class="section-title">Conclusion</h1>
-
-				This work confirms that it is possible to dynamically allocate computation in ECG classification without sacrificing diagnostic accuracy, enabling both computational efficiency and input-adaptive behavior. Adaptive-depth transformers—through either early halting or learned sparsity gates—provide a framework for analyzing and comparing the computational requirements of different cardiac signals. This approach not only allows for adaptive computation capability but also offers interpretability by revealing which signal characteristics drive model depth allocation.<br><br>
-
-				To further investigate the robustness and generalizability of this method, it would be worthwhile to test against even more varied and complex datasets, including multi-lead ECGs, diverse arrhythmia types, and real-world recordings with varying noise profiles. Additionally, exploring how the computational cost regularization (ponder loss or compute_fraction) can be extended to other biomedical signal modalities and deep learning architectures would strengthen the applicability of adaptive computation in clinical settings.<br><br>
-
-			</div>
-			<div class="margin-right-block">
-			</div>
-		</div>
-
-		<div class="content-margin-container" id="citations">
-			<div class="margin-left-block">
-			</div>
-			<div class="main-content-block">
-				<div class='citation' id="references" style="height:auto"><br>
-					<span style="font-size:16px">References:</span><br><br>
-					<a id="ref_1"></a>[1] <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">
-						ECG-TransCovNet: A hybrid transformer model for accurate arrhythmia detection using
-						Electrocardiogram signals</a>,
-					Shah, et al., 2024<br><br>
-					<a id="ref_ullah"></a>[2] <a href="https://arxiv.org/abs/2005.06902">
-						Classification of Arrhythmia by Using Deep Learning with 2-D ECG Spectral Image
-						Representation</a>,
-					Ullah, et al., 2020<br><br>
-					<a id="ref_akan"></a>[3] <a href="https://arxiv.org/abs/2401.05434">
-
-						ECGformer: Leveraging transformer for ECG heartbeat arrhythmia classification</a>,
-					Akan, et al., 2024<br><br>
-					<a id="ref_graves"></a>[4] <a href="https://arxiv.org/abs/1603.08983">
-						Adaptive Computation Time for Recurrent Neural Networks</a>, Graves, 2016<br><br>
-                    <a id="ref_avit"></a>[5] <a href="https://openaccess.thecvf.com/content/CVPR2022/papers/Yin_A-ViT_Adaptive_Tokens_for_Efficient_Vision_Transformer_CVPR_2022_paper.pdf">
-						A-ViT: Adaptive Tokens for Efficient Vision Transformer</a>, Yin et al., 2022 <br><br>
-                    <a id="ref_jiang"></a>[6] <a href="https://arxiv.org/html/2405.03722v1">
-						Class-relevant Patch Embedding Selection for Few-Shot Image Classification</a>, Yuan et al., 2024 <br><br>
-					<a id="ref_moody_mark_1983"></a>[7] <a
-						href="http://ecg.mit.edu/george/publications/afib-cinc-1983.pdf">
-						A new method for detecting atrial fibrillation using RR intervals</a>,
-					Moody and Mark, 1983<br><br>
-					<a id="ref_physionet_afdb"></a>[8] <a href="https://physionet.org/content/afdb/1.0.0/">
-						MIT-BIH Atrial Fibrillation Database</a>, Goldberger et al., 2000 <br><br>
-
-                    
-
-
-				</div>
-			</div>
-			<div class="margin-right-block">
-				<!-- margin notes for reference block here -->
-			</div>
-		</div>
+	</div>
 
 </body>
 
