@@ -1,6 +1,26 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <title>Offline KaTeX</title>
+
+    <!-- Local KaTeX CSS -->
+    <link rel="stylesheet" href="katex/katex.min.css">
+
+    <!-- Local KaTeX core -->
+    <script defer src="katex/katex.min.js"></script>
+
+    <!-- Local auto-render extension -->
+    <script defer src="katex/contrib/auto-render.min.js"
+            onload="renderMathInElement(document.body, {
+                delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '\\[', right: '\\]', display: true},
+                {left: '$',  right: '$',  display: false},
+                {left: '\\(', right: '\\)', display: false}
+                ]
+            });">
+    </script>
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 
@@ -429,22 +449,11 @@
             All experiments in this study were conducted with NVIDIA L40S and H200 GPUs.<br><br>
 
 			<hr>
-			<h1>Fixed-Depth Baseline Model</h1>
+			<h1>Fixed Depth Baseline Model</h1>
 
 			The baseline architecture comprises four components: CNN-based patch embedding, sinusoidal positional
-			encoding, four transformer encoder layers, and an MLP classification head. The model converts each ECG segment into a sequence of learned (fixed-length) patch embeddings using two convolutional layers to capture local morphology. Positional encodings are added, and the sequence is processed by a four-layer transformer encoder. The resulting patch representations are mean-pooled to form a global embedding, which a small MLP uses to predict the final arrhythmia label.
-            <br>
-
-			<b>Training Objective:</b> The model is trained with weighted cross-entropy loss:
-			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				<i>L</i><sub>task</sub> = − Σ<sub><i>c</i></sub> <i>w</i><sub><i>c</i></sub> <i>y</i><sub><i>c</i></sub>
-				log σ(<i>f</i>(<i>x</i>)<sub><i>c</i></sub>)
-			</div>
-			<br>
-			where <i>w</i><sub><i>c</i></sub> are balanced class weights and σ is the softmax function. We use the AdamW
-			optimizer with learning rate 3×10<sup>−4</sup>, weight decay 10<sup>−4</sup>, gradient clipping at norm 1.0,
-			batch size 32, and train for 20 epochs. All inputs traverse all four transformer layers, yielding
-			approximately 240k trainable parameters.<br><br>
+			encoding, four transformer encoder layers, and an MLP classification head. The model converts each ECG segment into a sequence of learned (fixed-length) patch embeddings using two convolutional layers to capture local morphology. Positional encodings are added, and the sequence is processed by a four-layer transformer encoder. The resulting patch representations are mean-pooled to form a global embedding, which a small MLP uses to predict the final arrhythmia label. The model is trained with weighted cross-entropy loss, using the AdamW
+			optimizer with learning rate 3×10<sup>−4</sup>, weight decay 10<sup>−4</sup>, gradient clipping at norm 1.0.<br><br>
 
 			<hr>
 			<h1>Adaptive Depth Transformer Model</h1>
