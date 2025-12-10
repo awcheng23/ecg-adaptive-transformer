@@ -2,24 +2,27 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Offline KaTeX</title>
+    <title>Adaptive Computation Transformers for Efficient ECG Time Series Classification</title>
 
     <!-- Local KaTeX CSS -->
     <link rel="stylesheet" href="katex/katex.min.css">
 
     <!-- Local KaTeX core -->
-    <script defer src="katex/katex.min.js"></script>
+    <script src="katex/katex.min.js"></script>
 
     <!-- Local auto-render extension -->
-    <script defer src="katex/contrib/auto-render.min.js"
-            onload="renderMathInElement(document.body, {
+    <script src="katex/contrib/auto-render.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
                 delimiters: [
-                {left: '$$', right: '$$', display: true},
-                {left: '\\[', right: '\\]', display: true},
-                {left: '$',  right: '$',  display: false},
-                {left: '\\(', right: '\\)', display: false}
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\[', right: '\\]', display: true},
+                    {left: '$',  right: '$',  display: false},
+                    {left: '\\(', right: '\\)', display: false}
                 ]
-            });">
+            });
+        });
     </script>
 
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
@@ -459,15 +462,11 @@
 			<h1>Adaptive Depth Transformer Model</h1>
 
 			The adaptive model shares the same CNN patch embedding, positional encoding, and classification head as the
-			baseline, but replaces the fixed transformer stack with an Adaptive Computation Time (ACT)-style halting
-			mechanism [<a href="#ref_graves">4</a>]. This enables per-sample, per-layer halting decisions, allowing
-			simple inputs to exit early while complex inputs traverse more layers. We use two variants: <b>(i) Non
+			baseline, but replaces the fixed transformer with per-layer halting mechanism. We use two variants: <b>(i) Non
 				weight
 				sharing</b>, where each of the four transformer blocks has its own parameters (~855K total), and <b>(ii)
 				Weight
-				sharing</b>, where a single transformer block is reused across all depths (~457K total), keeping the
-			same
-			halting logic but halving the parameter footprint. FLOPs reported at "full depth" assume all four layers are
+				sharing</b>, where a single transformer block is reused across all depths (~457K total). FLOPs reported at "full depth" assume all four layers are
 			executed; effective FLOPs during inference depend on the learned halting pattern.<br><br>
 
 			<b>Halting Mechanism:</b> At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after computing the global
@@ -506,11 +505,7 @@
 			selection model decides what to process, achieving computational savings through fine-grained pruning of
 			redundant tokens, attention heads, and entire transformer blocks. The model introduces small per-layer
 			gating
-			MLPs (for patch, head, and block decisions); these extra networks increase parameters (~974K total) and
-			raise
-			the full-depth FLOPs to ~2.76B versus 1.92B for the halting/fixed models, but heavy sparsity at inference
-			drives
-			the effective FLOPs sharply down.<br><br>
+			MLPs (for patch, head, and block decisions). These extra networks increase the number of parameters and full-depth FLOPs.<br><br>
 
 			<b>Gate Architecture:</b> At each layer, the model produces three learnable gate functions:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
