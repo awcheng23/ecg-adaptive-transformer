@@ -298,7 +298,7 @@
 				<a href="#related-work">Related Work</a><br><br>
 				<a href="#methodology">Methodology</a><br><br>
 				<a href="#experimental_results">Experimental Results</a><br><br>
-				<a href="#technical">Technical Implementation Details</a><br><br>
+				<a href="#discussion">Discussion</a><br><br>
 				<a href="#conclusion">Conclusion</a><br><br>
 			</div>
 		</div>
@@ -329,7 +329,7 @@
 			<br><br>
 
 		</div>
-		<div class="margin-right-block" style="transform: translate(0%, -140%);">
+		<div class="margin-right-block" style="transform: translate(0%, -60%);">
 			<b>Figure 1.</b> Example ECG signal showing normal sinus rhythm and atrial fibrillation. The irregular, chaotic pattern in the arrhythmic segment demonstrates the variability that makes anomaly detection challenging in long time series.
 		</div>
 	</div>
@@ -409,7 +409,7 @@
 			<div class="main-section-divider"></div>
 			<h1 class="section-title">Methodology</h1>
 
-			<i>Dataset and Preprocessing:</i><br><br>
+			<i>Data and Preprocessing</i><br><br>
 			All experiments use the MIT-BIH Atrial Fibrillation Database,
 			comprising 23 ten-hour ECG recordings sampled
 			at 250 Hz [<a href="#ref_physionet_afdb">9</a>]. We use the first channel of the recording to stay
@@ -426,39 +426,42 @@
 			Balanced class weights are applied during training due to class imbalance (~60% normal, ~40%
 			abnormal).<br><br>
 
+            All experiments in this study were conducted with NVIDIA L40S and H200 GPUs.<br><br>
+
 			<hr>
 			<h1>Fixed-Depth Baseline Model</h1>
 
 			The baseline architecture comprises four components: CNN-based patch embedding, sinusoidal positional
-			encoding, four transformer encoder layers, and an MLP classification head.<br><br>
+			encoding, four transformer encoder layers, and an MLP classification head.<br>
 
-			<b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D
-			convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with
-			batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs
-			non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
-			represents a 0.3-second temporal patch.<br><br>
-
-			<b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding:
-			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				PE(<i>pos</i>, 2<i>i</i>) = sin(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
-				PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)
-			</div>
+			<ol>
+				<li><b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D
+					convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with
+					batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs
+					non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
+					represents a 0.3-second temporal patch.</li>
+				<li><b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding:
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						PE(<i>pos</i>, 2<i>i</i>) = sin(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
+						PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)
+					</div>
+				</li>
+				<li><b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of
+					2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension
+					256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The
+					transformation at layer <i>l</i> is:
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
+						MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
+						<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
+						FFN(<i>Z</i>'<sub><i>l</i></sub>))
+					</div>
+				</li>
+				<li><b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100)
+					Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed
+					through a two-layer MLP to produce logits for binary classification.</li>
+			</ol>
 			<br>
-			<b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of
-			2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension
-			256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The
-			transformation at layer <i>l</i> is:
-			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
-				MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
-				<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
-				FFN(<i>Z</i>'<sub><i>l</i></sub>))
-			</div>
-			<br>
-			<b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100)
-			Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed
-			through a two-layer MLP: a linear layer (128 → 128) with ReLU and dropout (0.1), followed by a final linear
-			layer (128 → 2) producing logits for binary classification.<br><br>
 
 			<b>Training Objective:</b> The model is trained with weighted cross-entropy loss:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
@@ -788,7 +791,7 @@
 			full-depth cost is higher; shows sparsity can be extremely compute-efficient.<br><br>
 
 			<hr>
-			<h1>FLOPs Over Training Analysis</h1>
+			<h1>FLOP Analysis</h1>
 			<div style="text-align: center; margin: 20px 0;">
 				<img src="/blog/images/flops_over_time.png" alt="FLOPs over training iterations"
 					style="max-width: 90%; height: auto;">
@@ -803,7 +806,7 @@
 			allocate computation based on signal difficulty, maintaining reduced FLOPs while preserving
 			accuracy.<br><br>
 
-			<hr>
+			
 			<h1>Learning Stability</h1>
 
 			Both adaptive models diverge from the fixed baseline immediately and maintain lower FLOPs throughout
@@ -914,12 +917,12 @@
 		</div>
 	</div>
 
-	<div class="content-margin-container" id="technical">
+	<div class="content-margin-container" id="discussion">
 		<div class="margin-left-block">
 		</div>
 		<div class="main-content-block">
 			<div class="main-section-divider"></div>
-			<h1 class="section-title">Technical Implementation Details</h1>
+			<h1 class="section-title">Discussion</h1>
 
 		</div>
 		<div class="margin-right-block">
