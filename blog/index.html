@@ -356,8 +356,7 @@
 
 		</div>
 		<div class="margin-right-block" style="transform: translate(0%, -60%);">
-			<b>Figure 1.</b> Example ECG signal showing normal sinus rhythm and atrial fibrillation. The irregular,
-			chaotic pattern in the arrhythmic segment demonstrates the variability that makes anomaly detection
+			<b>Figure 1.</b> Example ECG signal showing normal sinus rhythm and atrial fibrillation. The irregular pattern in the arrhythmic segment demonstrates the variability that makes anomaly detection
 			challenging in long time series.
 		</div>
 	</div>
@@ -448,7 +447,7 @@
 			overlaps with an AFIB (atrial fibrillation), AFL (atrial flutter), or J (AV junctional rhythm)
 			interval.<br><br>
 
-			We preprocess the signals with a Butterworth bandpass filter (0.5–45 Hz) for noise and min-max normalization
+			We preprocess the signals with a Butterworth bandpass filter (0.5-45 Hz) for noise and min-max normalization
 			to the range [0,1]. The dataset is split into 70% (19,672 segments) for training, 15% (4,216) validation,
 			and 15% (4,216) test.
 			Balanced class weights are applied during training due to slight class imbalance (~60% normal, ~40%
@@ -557,15 +556,14 @@
 			<h1>Research Hypotheses</h1>
 
 			<b>H1: Computational Efficiency.</b> Can adaptive models reduce average computational cost without
-			sacrificing classification accuracy?<br>
-			We hypothesize that both adaptive approaches will achieve comparable test accuracy to the fixed baseline
-			while using fewer FLOPs per sample on average, as measured by effective depth ρ or compute_fraction.<br><br>
+			sacrificing classification accuracy for time seres?<br>
+			Since we embed the signal similar to how vision transformers process image tokens, we hypothesize that both adaptive approaches can still achieve comparable test accuracy compared to the fixed baseline,
+			while using fewer FLOPs per sample on average.<br><br>
 
 			<b>H2: Input-Dependent Computation.</b> Do adaptive models allocate computation differentially based on
 			input characteristics?<br>
-			We hypothesize that normal sinus rhythm segments (class 0) will receive lower average depth or compute
-			fraction than arrhythmic segments (class 1), reflecting the intuition that regular rhythms require less
-			processing than complex or irregular patterns.<br><br>
+			We hypothesize that normal sinus rhythm segments will require lower average depth/FLOPs than arrhythmic segments, reflecting the intuition that, when a cardiologist is manually examining, regular rhythms likely require less
+			processing than complex or irregular patterns. <br><br>
 
 			<!-- <b>H3: Correlation with Signal Complexity.</b> Does the computation allocated by adaptive models correlate
 			with intrinsic signal characteristics?<br>
@@ -683,24 +681,16 @@
 			accumulated. If a sample distributes its halting probability more gradually across layers, the effective
 			ponder cost increases. In contrast, arrhythmia segments may trigger more decisive halting behavior,
 			explaining the lower average ponder cost, assigning larger halting probabilities at one or two layers, and
-			leading to a lower ponder penalty. Thus, this supports input-dependent computation <b>H2</b>. The higher
+			leading to a lower ponder penalty. Thus, this supports input-dependent computation, but the opposite of what we hypothesized in <b>H2</b>. The higher
 			ponder loss for normal signals suggests that the model expresses greater uncertainty about when to halt on
 			clean sinus rhythms, while arrhythmic inputs elicit stronger, more confident halting decisions.
 
 			<hr>
 			<h1>Adaptive Selection Model</h1>
-			The adaptive selection model assigns each input patch a learned continuation probability using
-			Gumbel-sigmoid
-			gates, enabling dynamic depth selection. As shown in Figure 5, the model begins training at roughly 30%
-			activity—a moderately sparse operating point due to the stochasticity of the Gumbel-Softmax distribution.
-			Over the course of training, activity steadily declines and fluctuates between 10–25% as the gating network
-			explores different accuracy–sparsity trade-offs, resulting in characteristic volatility in effective compute
-			usage. Eventually, the model converges near ~14% activity, meaning only about one in seven patches, heads,
-			or blocks remain active on average. This learned pattern of dynamic depth allocation shows that the model
-			adaptively expands or restricts computation on a per-input basis and can still produce 99.26% test accuracy
-			despite extreme sparsity., confirming <b>H1</b> that adaptive gating yields significant computational
-			savings without degrading performance. This also invites future work with light transformer models and their
-			performance on this task.<br><br>
+			The adaptive selection model assigns each input patch a learned continuation probability. In Figure 6, the model begins training at roughly 30%
+			activity, due to the compounding effects of all 3&mdash;patch, head, and block&mdash;selections being limited and our choice of the Gumbel-Softmax distribution.
+			Over the course of training, the percentage of the model in use steadily declines and fluctuates between 10-25%. We observe that the model is exploring accuracy-sparsity trade-offs. Eventually, the model converges at approximately 14% activity. Despite the minimal parameter usage, the adaptive selection model still achieved 99.26% test accuracy, furthering illustrating <b>H1</b>. This also invites future work with light transformer models and their
+			performance on this task, since the model performed well with majority units inactive.<br><br>
 
 			<div style="text-align: center; margin: 20px 0;">
 				<img src="./images/selection_model_activity.png" alt="Selection model active patches over training"
@@ -709,36 +699,32 @@
 					style="max-width: 70%; height: auto;">
 			</div>
 
-			In Figure 6, we evaluate the patches of five test segments with the lowest computational cost against the
-			five with the highest, highlighting which temporal patches were retained by the adaptive-selection model.
-			Although the model does not exhibit dramatic differences in the number of patches selected across these
-			extremes, the distribution of classes within each group reveals an important trend. All five of the
-			least-computed samples were normal sinus rhythm, whereas the heavy-compute set contained a mix of normal and
-			abnormal cases (three normal and three arrhythmic).
+			In Figure 7, we evaluate the patches of five test segments with the lowest computational cost against the
+			five with the highest, highlighting which temporal patches were retained by the adaptive selection model. The patches are sparsely distributed, but typically cover the entire QRS complex, and either the proceeding P-wave or
+            following T-wave. This aligns with clinical knowledge that these features are most informative for arrhythmia detection and <b>H3</b>.
+			The model did not exhibit dramatic differences in the number of patches selected across these
+			two groups, and their FLOPs per test pass were within the same order of magnitude. This shows that for the adaptive selection model, there was not a significant difference in compute resource allocation. We note that five of the
+			samples that required the least computation were normal sinus rhythm, whereas the heavy-compute set contained a mix of normal and
+			abnormal cases (two normal and three arrhythmic).
 
-			This suggests that, even though patch-level sparsity appears relatively stable overall, the model still
-			allocates slightly more computation to more complex inputs, including arrhythmias. The fact that some normal
-			samples also require high compute indicates that the model is responding not just to rhythm class, but to
-			broader signal characteristics—such as noise, irregular morphology, or ambiguous local features—that require
-			deeper processing.
-
-			Overall, the visualization supports the hypothesis that adaptive computation correlates with input
-			difficulty, even when differences in patch usage are subtle.
+			The fact that some normal
+			samples also require high compute indicates that the model is responding not just to rhythm class, but possibly to
+			broader signal characteristics—such as noise, irregular morphology, or ambiguous local features.
 
 		</div>
 		<div class="margin-right-block">
-			<p style="transform: translate(0%, -1550%);">
+			<p style="transform: translate(0%, -1620%);">
 				<b>Figure 2.</b> <i>FLOPs per forward pass across training.</i> We record the number of FLOPs for each
 				model at each training step.
 			</p>
 
-			<p style="transform: translate(0%, -500%);">
+			<p style="transform: translate(0%, -540%);">
 				<b>Figure 3.</b> <i>Variance in FLOPs over training for three adaptive models. </i>Adaptive depth
 				remains the most stable, while weight-sharing increases variance and adaptive selection shows the
 				highest volatility due to stochastic gating.
 			</p>
 
-			<p style="transform: translate(0%, -100%);">
+			<p style="transform: translate(0%, -140%);">
 				<b>Figure 4.</b> <i>Average Ponder Loss during training.</i> Shows the decline in ponder loss for both
 				adaptive depth models, indicating learned reduction in computation over time.
 			</p>
@@ -750,17 +736,14 @@
 			</p>
 
 
-			<p style="transform: translate(0%, 420%);">
-				<b>Figure 6.</b> <i>Selection model active parameter fraction across training steps. </i>Starts at ~30%
-				activity (70% sparsity) due to Gumbel-Softmax temperature initialization and random gate weights that
-				favor moderate pruning before learning. It then drops sharply, demonstrating learned extreme
-				sparsity while maintaining 99.26% test accuracy.
+			<p style="transform: translate(0%, 740%);">
+				<b>Figure 6.</b> <i>Selection model active parameter fraction across training steps. </i> Model starts at ~30%
+				activity and then drops off and demonstrates learned extreme sparsity.
 			</p>
 
-			<p style="transform: translate(0%, 750%);">
-				<b>Figure 7.</b> <i> Patch-Level Computation Patterns. </i>Patches retained by the model for the lowest-
-				and highest-compute segments. High-compute examples show more irregular or noisy regions, suggesting the
-				model allocates depth based on signal complexity.
+			<p style="transform: translate(0%, 1100%);">
+				<b>Figure 7.</b> <i> Patch-Level Computation Patterns. </i> Patches retained by the model for the lowest-
+				and highest-compute segments by the adaptive selection model. 
 			</p>
 
 		</div>
@@ -779,9 +762,7 @@
 			achieves 29.9% FLOPs
 			reduction while maintaining 98.93% accuracy compared to the baseline model's 98.81% accuracy, while adaptive
 			selection achieves 91.1% reduction at 99.26%
-			accuracy. The observation that models autonomously learn to allocate deeper computation to morphologically
-			complex signals suggests that transformer architectures, when equipped with adaptive depth mechanisms, can
-			learn interpretable hierarchies of feature abstraction.<br><br>
+			accuracy. Adaptive selection could serve as a powerful framework for model interpretability, and for signals not as well characterized as ECGs, help determine which parts of the signal to focus on. <br><br>
 
 			From an architectural perspective, this project highlights the relationship between model capacity,
 			regularization
