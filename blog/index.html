@@ -480,7 +480,8 @@
 			    weight
 				sharing</b>, where a single transformer block is reused across all depths. FLOPs reported at "full
 			depth" assume all four layers are
-			executed, and effective FLOPs during inference depend on the learned halting pattern.<br><br>
+			executed, and effective FLOPs during inference depend on the learned halting pattern. We take inspiration from token halting in vision transformers, but adapt the mechanism for entire layers [<a href="#ref_avit">7</a>].
+            <br><br>
 
 			<b>Halting Mechanism:</b> At each transformer layer <i>l</i> ∈ {0, 1, 2, 3}, after computing the global
 			representation <i>z</i><sub><i>l</i></sub> = (1/100) Σ<sub><i>p</i></sub>
@@ -540,9 +541,7 @@
 				compute_fraction = Σ<sub><i>l</i></sub> FLOPs<sub><i>l</i></sub> / (4 · FLOPs<sub>dense</sub>)
 			</div>
 			<br>
-			The triple product captures multiplicative savings from pruning tokens, heads, and blocks jointly, allowing
-			significant FLOPs reduction when gates cooperate. The compute fraction ranges from 0 to 1, where lower
-			values indicate more aggressive pruning.<br><br>
+			The resulting compute fraction reflects how much of the full model was actually used, with lower values indicating more aggressive sparsity.<br><br>
 
 			<b>Training Objective:</b> Like the adaptive depth model, the selection model is trained with a composite
 			loss balancing task accuracy and computation: <br><br>
