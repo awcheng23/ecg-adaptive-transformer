@@ -298,7 +298,7 @@
 				<a href="#related-work">Related Work</a><br><br>
 				<a href="#methodology">Methodology</a><br><br>
 				<a href="#experimental_results">Experimental Results</a><br><br>
-				<a href="#technical">Technical Implementation Details</a><br><br>
+				<a href="#discussion">Discussion</a><br><br>
 				<a href="#conclusion">Conclusion</a><br><br>
 			</div>
 		</div>
@@ -329,7 +329,7 @@
 			<br><br>
 
 		</div>
-		<div class="margin-right-block" style="transform: translate(0%, -140%);">
+		<div class="margin-right-block" style="transform: translate(0%, -60%);">
 			<b>Figure 1.</b> Example ECG signal showing normal sinus rhythm and atrial fibrillation. The irregular, chaotic pattern in the arrhythmic segment demonstrates the variability that makes anomaly detection challenging in long time series.
 		</div>
 	</div>
@@ -409,7 +409,7 @@
 			<div class="main-section-divider"></div>
 			<h1 class="section-title">Methodology</h1>
 
-			<i>Dataset and Preprocessing:</i><br><br>
+			<i>Data and Preprocessing</i><br><br>
 			All experiments use the MIT-BIH Atrial Fibrillation Database,
 			comprising 23 ten-hour ECG recordings sampled
 			at 250 Hz [<a href="#ref_physionet_afdb">9</a>]. We use the first channel of the recording to stay
@@ -426,39 +426,42 @@
 			Balanced class weights are applied during training due to class imbalance (~60% normal, ~40%
 			abnormal).<br><br>
 
+            All experiments in this study were conducted with NVIDIA L40S and H200 GPUs.<br><br>
+
 			<hr>
 			<h1>Fixed-Depth Baseline Model</h1>
 
 			The baseline architecture comprises four components: CNN-based patch embedding, sinusoidal positional
-			encoding, four transformer encoder layers, and an MLP classification head.<br><br>
+			encoding, four transformer encoder layers, and an MLP classification head.<br>
 
-			<b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D
-			convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with
-			batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs
-			non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
-			represents a 0.3-second temporal patch.<br><br>
-
-			<b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding:
-			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				PE(<i>pos</i>, 2<i>i</i>) = sin(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
-				PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)
-			</div>
+			<ol>
+				<li><b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D
+					convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with
+					batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs
+					non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
+					represents a 0.3-second temporal patch.</li>
+				<li><b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding:
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						PE(<i>pos</i>, 2<i>i</i>) = sin(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
+						PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)
+					</div>
+				</li>
+				<li><b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of
+					2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension
+					256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The
+					transformation at layer <i>l</i> is:
+					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
+						<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
+						MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
+						<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
+						FFN(<i>Z</i>'<sub><i>l</i></sub>))
+					</div>
+				</li>
+				<li><b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100)
+					Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed
+					through a two-layer MLP to produce logits for binary classification.</li>
+			</ol>
 			<br>
-			<b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of
-			2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension
-			256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The
-			transformation at layer <i>l</i> is:
-			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-				<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
-				MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
-				<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
-				FFN(<i>Z</i>'<sub><i>l</i></sub>))
-			</div>
-			<br>
-			<b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100)
-			Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed
-			through a two-layer MLP: a linear layer (128 → 128) with ReLU and dropout (0.1), followed by a final linear
-			layer (128 → 2) producing logits for binary classification.<br><br>
 
 			<b>Training Objective:</b> The model is trained with weighted cross-entropy loss:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
@@ -565,83 +568,7 @@
 			where α<sub>p</sub> = 5×10<sup>−4</sup> (same as the halting model). The decision network and gate
 			projections add approximately 5% to the total parameter count, keeping the model comparable in size to the
 			other approaches.<br><br>
-			<hr>
-			<h1>Comparison of Adaptive Models</h1>
-			<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-				<tr style="background-color: #f0f0f0;">
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 18%;">Aspect</td>
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Halting
-						(Weight Sharing and Non Weight Sharing)
-					</td>
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold; width: 41%;">Adaptive-Selection
-					</td>
-				</tr>
-				<tr>
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Depth Strategy</td>
-					<td style="border: 1px solid #999; padding: 12px;">Variable depth (1–4 layers) via early stopping
-						mechanism</td>
-					<td style="border: 1px solid #999; padding: 12px;">Fixed depth (always 4 layers); applies
-						intra-layer pruning via learned gate functions</td>
-				</tr>
-				<tr style="background-color: #fafafa;">
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Decision Mechanism</td>
-					<td style="border: 1px solid #999; padding: 12px;"><i>h</i><sub><i>l</i></sub> = σ(γ ·
-						<i>z</i><sub><i>l</i></sub>[0] − β)<br>Single scalar halting probability computed per layer
-					</td>
-					<td style="border: 1px solid #999; padding: 12px;"><i>M</i><sub>p,<i>l</i></sub> ∈
-						(0,1)<sup>100</sup>, <i>M</i><sub>h,<i>l</i></sub> ∈ (0,1)<sup>H</sup>,
-						<i>M</i><sub>b,<i>l</i></sub> ∈ (0,1)<br>Three hierarchical gate functions applied per layer
-					</td>
-				</tr>
-				<tr>
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Output Aggregation</td>
-					<td style="border: 1px solid #999; padding: 12px;"><b>output</b> =
-						Σ<sub><i>l</i>=0</sub><sup>3</sup> (δ<sub>1,<i>l</i></sub> + δ<sub>2,<i>l</i></sub>)<br>Weighted
-						sum of layer outputs by halting probabilities</td>
-					<td style="border: 1px solid #999; padding: 12px;">X<sub>masked</sub> = [x<sub>cls</sub>,
-						<i>M</i><sub>p,<i>l</i></sub> ⊙ x[1:]]<br>Element-wise multiplicative gating of patches, heads,
-						and blocks
-					</td>
-				</tr>
-				<tr style="background-color: #fafafa;">
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Loss Function</td>
-					<td style="border: 1px solid #999; padding: 12px;"><i>L</i> = <i>L</i><sub>task</sub> +
-						α<sub>p</sub> · 𝔼[ρ]<br>where ρ ∈ [1, 4] represents the ponder cost in layers</td>
-					<td style="border: 1px solid #999; padding: 12px;"><i>L</i> = <i>L</i><sub>task</sub> +
-						α<sub>p</sub> · 𝔼[compute_fraction]<br>where compute_fraction = Σ<sub><i>l</i></sub>
-						FLOPs<sub><i>l</i></sub> / (4 · FLOPs<sub>dense</sub>)</td>
-				</tr>
-				<tr>
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Computational Cost</td>
-					<td style="border: 1px solid #999; padding: 12px;">FLOPs ∝ ρ<br>Average effective depth: 1.1–4.0
-						layers</td>
-					<td style="border: 1px solid #999; padding: 12px;">FLOPs<sub><i>l</i></sub> =
-						(N<sub>eff,<i>l</i></sub>/100) · (α<sub>h,<i>l</i></sub>) · <i>M</i><sub>b,<i>l</i></sub> ·
-						FLOPs<sub>dense,<i>l</i></sub><br>Typical compute fraction: 0.1–0.3</td>
-				</tr>
-				<tr style="background-color: #fafafa;">
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">State Management</td>
-					<td style="border: 1px solid #999; padding: 12px;">Maintains cumulative halting mass <i>c</i>,
-						remainder <i>R</i>, and active mask<br>Halting condition: <i>c</i> ≥ 1 − ε where ε = 0.05</td>
-					<td style="border: 1px solid #999; padding: 12px;">Maintains accumulated context vector
-						<i>Z</i><sub><i>l</i></sub><br>Decision network processes information from preceding layers
-					</td>
-				</tr>
-				<tr>
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Training Procedure</td>
-					<td style="border: 1px solid #999; padding: 12px;">Backpropagation through halting decisions with
-						α<sub>p</sub> = 5×10<sup>−4</sup> regularization weight</td>
-					<td style="border: 1px solid #999; padding: 12px;">Gumbel-sigmoid relaxation during training; hard
-						thresholding at inference; α<sub>p</sub> = 5×10<sup>−4</sup></td>
-				</tr>
-				<tr style="background-color: #fafafa;">
-					<td style="border: 1px solid #999; padding: 12px; font-weight: bold;">Principal Advantage</td>
-					<td style="border: 1px solid #999; padding: 12px;">Interpretable mechanism: terminates processing
-						early for simpler inputs</td>
-					<td style="border: 1px solid #999; padding: 12px;">Superior FLOPs reduction via multiplicative
-						multi-axis pruning (tokens × heads × blocks)</td>
-				</tr>
-			</table>
+			
 
 			<hr>
 			<h1>Research Hypotheses</h1>
@@ -687,96 +614,8 @@
 			computation reduces FLOPs and parameters while maintaining or improving classification accuracy.<br><br>
 			<hr>
 			<h1>Model Performance Comparison</h1>
-			<div style="overflow-x: auto; margin: 20px 0;">
-				<table
-					style="width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: 13px;">
-					<thead>
-						<tr style="background-color: #f0f0f0; border-bottom: 2px solid #333;">
-							<th
-								style="padding: 12px 8px; text-align: left; border-right: 1px solid #ccc; font-weight: bold;">
-								Model</th>
-							<th
-								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
-								Parameters</th>
-							<th
-								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
-								FLOPs (Full Depth)</th>
-							<th
-								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
-								Avg FLOPs (Test)</th>
-							<th
-								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
-								FLOPs Reduction</th>
-							<th
-								style="padding: 12px 8px; text-align: center; border-right: 1px solid #ccc; font-weight: bold;">
-								Test Accuracy</th>
-							<th style="padding: 12px 8px; text-align: center; font-weight: bold;">Δ Accuracy vs Fixed
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr style="border-bottom: 1px solid #ddd;">
-							<td
-								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
-								Fixed CNN-Transformer</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">854K</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">—</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
-								<b>98.81%</b>
-							</td>
-							<td style="padding: 10px 8px; text-align: center;">—</td>
-						</tr>
-						<tr style="border-bottom: 1px solid #ddd;">
-							<td
-								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
-								Adaptive (No WS)</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">855K</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.35B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;"><span
-									style="color: #2ca02c; font-weight: bold;">−29.9%</span></td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
-								<b>98.93%</b>
-							</td>
-							<td style="padding: 10px 8px; text-align: center;"><span
-									style="color: #2ca02c;">+0.12%</span></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #ddd;">
-							<td
-								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
-								Adaptive (WS)</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">457K <span
-									style="color: #176f30;">(−46%)</span></td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.92B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">1.51B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;"><span
-									style="color: #2ca02c; font-weight: bold;">−21.4%</span></td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
-								<b>98.60%</b>
-							</td>
-							<td style="padding: 10px 8px; text-align: center;"><span
-									style="color: #d62728;">−0.21%</span></td>
-						</tr>
-						<tr style="border-bottom: 1px solid #ddd;">
-							<td
-								style="padding: 10px 8px; border-right: 1px solid #ddd; font-weight: bold; background-color: #f9f9f9;">
-								Selection (Gating)</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">974K</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">2.76B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">0.25B</td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;"><span
-									style="color: #176f30; font-weight: bold;">−91.1%</span></td>
-							<td style="padding: 10px 8px; text-align: center; border-right: 1px solid #ddd;">
-								<b>99.26%</b>
-							</td>
-							<td style="padding: 10px 8px; text-align: center;"><span
-									style="color: #2ca02c;">+0.45%</span></td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+            <img src="/blog/images/test_performance.png" alt="FLOPs over training iterations"
+					style="max-width: 80%; height: auto;">
 
 			<h3>Key Observations</h3>
 			<b>Adaptive (No WS):</b> 29.9% FLOPs reduction (1.35B vs 1.92B) with the same parameter budget (855K) and a
@@ -788,7 +627,7 @@
 			full-depth cost is higher; shows sparsity can be extremely compute-efficient.<br><br>
 
 			<hr>
-			<h1>FLOPs Over Training Analysis</h1>
+			<h1>FLOP Analysis</h1>
 			<div style="text-align: center; margin: 20px 0;">
 				<img src="/blog/images/flops_over_time.png" alt="FLOPs over training iterations"
 					style="max-width: 90%; height: auto;">
@@ -803,7 +642,7 @@
 			allocate computation based on signal difficulty, maintaining reduced FLOPs while preserving
 			accuracy.<br><br>
 
-			<hr>
+			
 			<h1>Learning Stability</h1>
 
 			Both adaptive models diverge from the fixed baseline immediately and maintain lower FLOPs throughout
@@ -914,12 +753,12 @@
 		</div>
 	</div>
 
-	<div class="content-margin-container" id="technical">
+	<div class="content-margin-container" id="discussion">
 		<div class="margin-left-block">
 		</div>
 		<div class="main-content-block">
 			<div class="main-section-divider"></div>
-			<h1 class="section-title">Technical Implementation Details</h1>
+			<h1 class="section-title">Discussion</h1>
 
 		</div>
 		<div class="margin-right-block">
