@@ -295,7 +295,7 @@
 			<div style="position:fixed; max-width:inherit; top:max(20%,120px)">
 				<b style="font-size:20px">Outline</b><br><br>
 				<a href="#intro">Introduction</a><br><br>
-				<a href="#prior_work">Prior Work</a><br><br>
+				<a href="#related-work">Related Work</a><br><br>
 				<a href="#methodology">Methodology</a><br><br>
 				<a href="#experimental_results">Experimental Results</a><br><br>
 				<a href="#technical">Technical Implementation Details</a><br><br>
@@ -357,12 +357,12 @@
 	</div>
 
 
-	<div class="content-margin-container" id="prior-work">
+	<div class="content-margin-container" id="related-work">
 		<div class="margin-left-block"></div>
 
 		<div class="main-content-block">
 			<div class="main-section-divider"></div>
-			<h1 class="section-title" id="methodology">Related Work</h1> Automated ECG classification has evolved
+			<h1 class="section-title">Related Work</h1> Automated ECG classification has evolved
 			significantly with deep learning, beginning with convolutional and
 			recurrent architectures and moving toward transformer-based approaches. Deep learning methods typically
 			apply
@@ -424,12 +424,12 @@
 	</div>
 
 
-	<div class="content-margin-container">
+	<div class="content-margin-container" id="methodology">
 		<div class="margin-left-block">
 		</div>
 		<div class="main-content-block">
 			<div class="main-section-divider"></div>
-			<h1 class="section-title" id="methodology">Methodology</h1>
+			<h1 class="section-title">Methodology</h1>
 
 			<i>Dataset and Preprocessing:</i><br><br>
 			All experiments use the MIT-BIH Atrial Fibrillation Database,
@@ -826,7 +826,7 @@
 			accuracy.<br><br>
 
 			<hr>
-			<h1>Learning Phases Analysis</h1>
+			<h1>Learning Stability</h1>
 
 			Both adaptive models diverge from the fixed baseline immediately and maintain lower FLOPs throughout
 			training, directly confirming <b>H1</b>. Halting achieves 32% reduction (2.14B → 1.45B) with smooth, stable
@@ -849,8 +849,8 @@
 			to signal complexity.<br><br>
 
 			<div style="text-align: center; margin: 20px 0;">
-				<img src="/blog/images/learning_phases_analysis.png" alt="Detailed learning phases breakdown"
-					style="max-width: 90%; height: auto;">
+				<img src="/blog/images/learning_stability_variance.png" alt="Learning stability and variance analysis"
+					style="max-width: 70%; height: auto;">
 			</div>
 
 			Four-phase breakdown (Warmup 0-2K, Active 2-6K, Refinement 6-10K, Stabilization 10-12.3K) quantifies
@@ -868,8 +868,10 @@
 			<hr>
 			<h1>Selection Model Activity</h1>
 			<div style="text-align: center; margin: 20px 0;">
+                <img src="/blog/images/average_ponder_loss.png" alt="Average ponder loss over training"
+					style="max-width: 70%; height: auto;"> <br><br>
 				<img src="/blog/images/selection_model_activity.png" alt="Selection model active patches over training"
-					style="max-width: 90%; height: auto;">
+					style="max-width: 70%; height: auto;">
 			</div>
 
 			The Selection model assigns each input patch a learned continuation probability using Gumbel-sigmoid
@@ -884,6 +886,11 @@
 			directly validates <b>H2</b>: the model adapts computation on a per-input basis, allocating resources only
 			where needed. The convergence to extreme sparsity while maintaining 99.26% accuracy confirms
 			<b>H1</b>—computational efficiency without performance degradation.<br><br>
+
+			<div style="text-align: center; margin: 20px 0;">
+				<img src="/blog/images/low_high_compute_grid.png" alt="Low and high compute examples"
+					style="max-width: 70%; height: auto;">
+			</div>
 
 		</div>
 		<div class="margin-right-block" ;">
