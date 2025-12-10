@@ -432,36 +432,8 @@
 			<h1>Fixed-Depth Baseline Model</h1>
 
 			The baseline architecture comprises four components: CNN-based patch embedding, sinusoidal positional
-			encoding, four transformer encoder layers, and an MLP classification head.<br>
-
-			<ol>
-				<li><b>Patch Embedding:</b> The input ECG segment <i>x</i> ∈ ℝ<sup>1×7500</sup> is processed by two 1D
-					convolutional layers. The first (32 filters, kernel 7, stride 1, padding 3) extracts local features with
-					batch normalization and ReLU activation. The second (128 filters, kernel 75, stride 75) performs
-					non-overlapping patchification, yielding <i>Z</i><sub>0</sub> ∈ ℝ<sup>100×128</sup>, where each row
-					represents a 0.3-second temporal patch.</li>
-				<li><b>Positional Encoding:</b> Sinusoidal positional encodings are added to each patch embedding:
-					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-						PE(<i>pos</i>, 2<i>i</i>) = sin(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)<br>
-						PE(<i>pos</i>, 2<i>i</i> + 1) = cos(<i>pos</i> / 10000<sup>2<i>i</i>/128</sup>)
-					</div>
-				</li>
-				<li><b>Transformer Encoder:</b> Four identical encoder layers are applied sequentially. Each layer consists of
-					2-head multi-head attention (64 dimensions per head) followed by a feedforward network (hidden dimension
-					256), with residual connections, layer normalization, and dropout (0.1) applied after each sub-layer. The
-					transformation at layer <i>l</i> is:
-					<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
-						<i>Z</i>'<sub><i>l</i></sub> = LayerNorm(<i>Z</i><sub><i>l</i>−1</sub> +
-						MultiHeadAttention(<i>Z</i><sub><i>l</i>−1</sub>))<br>
-						<i>Z</i><sub><i>l</i></sub> = LayerNorm(<i>Z</i>'<sub><i>l</i></sub> +
-						FFN(<i>Z</i>'<sub><i>l</i></sub>))
-					</div>
-				</li>
-				<li><b>Classification Head:</b> We perform mean pooling over all 100 patches to obtain <i>z</i> = (1/100)
-					Σ<sub><i>p</i></sub> <i>Z</i><sub>4</sub>[<i>p</i>] ∈ ℝ<sup>128</sup>. This global representation is passed
-					through a two-layer MLP to produce logits for binary classification.</li>
-			</ol>
-			<br>
+			encoding, four transformer encoder layers, and an MLP classification head. The model converts each ECG segment into a sequence of learned (fixed-length) patch embeddings using two convolutional layers to capture local morphology. Positional encodings are added, and the sequence is processed by a four-layer transformer encoder. The resulting patch representations are mean-pooled to form a global embedding, which a small MLP uses to predict the final arrhythmia label.
+            <br>
 
 			<b>Training Objective:</b> The model is trained with weighted cross-entropy loss:
 			<div style="margin-left: 40px; font-family: 'Courier New', monospace;">
@@ -618,9 +590,19 @@
 					style="max-width: 80%; height: auto;"><br>
 
 			From Table 1, we see some efficiency accuracy trade-offs. The adaptive model without weight sharing provides the most balanced improvement. The weight-sharing version, while slightly less accurate, cuts the parameter count nearly in half and still lowers computation. The adaptive selection model behaves differently. Although its full-depth computation is higher, its learned sparsity allows it to operate at a fraction of the cost during inference, achieving the largest efficiency gains overall while also delivering the highest accuracy. Together, these results show that both early-halting and learned-sparsity strategies can meaningfully reduce computational load, with each variant offering a different balance of efficiency, model size, and performance. <br><br>
+		</div>
+		<div class="margin-right-block">
+		</div>
+	</div>
 
-			<hr>
-			<h1>FLOP Analysis</h1>
+	<div class="content-margin-container" id="discussion">
+		<div class="margin-left-block">
+		</div>
+		<div class="main-content-block">
+			<div class="main-section-divider"></div>
+			<h1 class="section-title">Discussion</h1>
+
+            <h1>FLOP Analysis</h1>
 			<div style="text-align: center; margin: 20px 0;">
 				<img src="/blog/images/flops_over_time.png" alt="FLOPs over training iterations"
 					style="max-width: 90%; height: auto;">
@@ -703,7 +685,7 @@
 			</div>
 
 		</div>
-		<div class="margin-right-block" ;">
+		<div class="margin-right-block">
 
 			<p style="transform: translate(0%, -300%);">
 				<b>Table 1.</b> <i> Comprehensive model performance metrics.</i> All models are evaluated on the same
@@ -743,18 +725,7 @@
 				only 1 in 7 components active) by Stabilization phase (10-12.3K), demonstrating learned extreme
 				sparsity while maintaining 99.26% test accuracy.
 			</p>
-		</div>
-	</div>
 
-	<div class="content-margin-container" id="discussion">
-		<div class="margin-left-block">
-		</div>
-		<div class="main-content-block">
-			<div class="main-section-divider"></div>
-			<h1 class="section-title">Discussion</h1>
-
-		</div>
-		<div class="margin-right-block">
 		</div>
 	</div>
 
@@ -800,7 +771,7 @@
 		</div>
 		<div class="main-content-block">
 			<div class='citation' id="references" style="height:auto"><br>
-				<span style="font-size:16px">References:</span><br><br>
+				<span style="font-size:16px">References</span><br><br>
 				<a id="ref_1"></a>[1] <a href="https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/cit2.12293">
 					ECG-TransCovNet: A hybrid transformer model for accurate arrhythmia detection using
 					Electrocardiogram signals</a>,
