@@ -689,21 +689,12 @@ Overall, the visualization supports the hypothesis that adaptive computation cor
 			learn interpretable hierarchies of feature abstraction: shallow layers extract signal morphology sufficient
 			for routine patterns, while deeper layers disambiguate complex arrhythmias.<br><br>
 
-			From an architectural perspective, this work highlights the interplay between model capacity, regularization
-			design, and learned computation allocation. The ponder loss regularization enables explicit optimization of
-			the efficiency-accuracy frontier without post-hoc pruning or distillation, making the computation budget a
-			design parameter rather than a computational constraint. However, practical deployment of such methods
-			requires addressing several architectural and empirical gaps. The expressiveness of the halting controller
-			remains a fundamental question—the binary early-exit mechanism may not capture fine-grained routing patterns
-			in deeper layers. Comparative architectural studies against pruning, quantization, and knowledge
-			distillation on equivalent model families would clarify whether adaptive depth represents a distinct
-			efficiency paradigm or a complementary technique. Furthermore, theoretical understanding of why
-			input-dependent depth allocation succeeds in time-series classification remains limited; future work should
-			investigate the relationship between signal complexity metrics, layer-wise feature specialization, and
-			optimal halting depth through causal analysis and attention visualization. Extending this framework to
-			multi-lead recordings, diverse cardiac pathologies, and other physiological signal modalities would
-			establish whether adaptive depth allocation is a general principle for biomedical deep learning or specific
-			to single-lead ECG classification.<br><br>
+			From an architectural perspective, this project highlights the relationship between model capacity, regularization
+			design, and learned computation allocation. However, practical deployment of such methods
+			requires addressing several architectural and empirical gaps, such as the end-to-end framework. The expressiveness of limited depth could unintentionally constrain feature learning in earlier layers, potentially leading to suboptimal representations. Future work should
+			investigate the relationship between signal complexity metrics and computation load, as well as layer-wise feature specialization through causal analysis and attention visualization. Extending this framework to
+			multi-lead recordings and other physiological signals would
+			establish whether adaptive depth allocation could become principle for biomedical deep learning.<br><br>
 
 		</div>
 		<div class="margin-right-block">
