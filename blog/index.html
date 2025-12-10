@@ -539,13 +539,13 @@
 			fraction than arrhythmic segments (class 1), reflecting the intuition that regular rhythms require less
 			processing than complex or irregular patterns.<br><br>
 
-			<b>H3: Correlation with Signal Complexity.</b> Does the computation allocated by adaptive models correlate
+			<!-- <b>H3: Correlation with Signal Complexity.</b> Does the computation allocated by adaptive models correlate
 			with intrinsic signal characteristics?<br>
 			We hypothesize that samples with higher variance, lower signal-to-noise ratio, or atypical morphology will
 			require traversing more layers or retaining more patches/heads/blocks, demonstrating sensitivity to
-			variability, noise level, and morphological complexity.<br><br>
+			variability, noise level, and morphological complexity.<br><br> -->
 
-			<b>H4: Interpretability and Feature Usage.</b> Do adaptive mechanisms provide interpretable insights into
+			<b>H3: Interpretability and Feature Usage.</b> Do adaptive mechanisms provide interpretable insights into
 			which temporal or spatial features drive classification?<br>
 			We hypothesize that for the halting model, early halting will correspond to local feature sufficiency while
 			late halting indicates reliance on global temporal context, and for the selection model, patch and attention
@@ -575,6 +575,10 @@
 			From Table 1, we see some efficiency accuracy trade-offs. The adaptive model without weight sharing provides the most balanced improvement. The weight-sharing version, while slightly less accurate, cuts the parameter count nearly in half and still lowers computation. The adaptive selection model behaves differently. Although its full-depth computation is higher, its learned sparsity allows it to operate at a fraction of the cost during inference, achieving the largest efficiency gains overall while also delivering the highest accuracy. Together, these results show that both early-halting and learned-sparsity strategies can meaningfully reduce computational load, with each variant offering a different balance of efficiency, model size, and performance. <br><br>
 		</div>
 		<div class="margin-right-block">
+			<b>Table 1.</b> <i> Comprehensive model performance metrics.</i> All models are evaluated on the same
+				test
+				set
+				(AFDB, 2-class: normal vs. atrial fibrillation). 
 		</div>
 	</div>
 
@@ -592,123 +596,80 @@
 
 			</div>
 
-			The adaptive curves drop below the fixed baseline early in training and remain lower, illustrating <b>H1</b>
-			(efficiency without accuracy loss). The WS trajectory shows larger variance, consistent with shared weights
-			forcing the halting mechanism to balance reuse against depth—yet its mean stays below fixed. The smoother No
-			WS
-			curve indicates a more stable halting policy. Together, these trends support <b>H3</b>: the models learn to
-			allocate computation based on signal difficulty, maintaining reduced FLOPs while preserving
-			accuracy.<br><br>
+            In Figure 2, we see the FLOP count for the adaptive models drop below the fixed baseline early in training and remain lower. Both adaptive depth models quickly learn to halt earlier, settling into lower-cost computation after the initial few hundred iterations. The non–weight-sharing version converges to a stable, moderately reduced compute level, whereas the weight-sharing model fluctuates more but still maintains lower FLOPs than the baseline. The adaptive-selection model exhibits the strongest reduction. Its FLOPs drop sharply at the start as the gating mechanism learns, but due to its framework, it already begins with a sparse computation compared the baseline and learns to decrease even further. Overall, we see that as training progresses, the adaptive mechanisms learn when full processing is unnecessary and automatically compress computation in a data-dependent way.<br><br>
 
 			
 			<h1>Learning Stability</h1>
 
-			Both adaptive models diverge from the fixed baseline immediately and maintain lower FLOPs throughout
-			training, directly confirming <b>H1</b>. Halting achieves 32% reduction (2.14B → 1.45B) with smooth, stable
-			convergence by step 6K, while Selection achieves 91.1% reduction (2.76B full-depth → 0.25B effective)
-			through
-			an aggressive initial drop followed by exploration (2-6K steps) and stabilization. The distinct temporal
-			patterns
-			validate <b>H2</b>: both architectures learn when and how to prune computation based on training signals,
-			with
-			Halting employing deterministic depth-based early exiting and Selection using stochastic Gumbel-Softmax
-			gating over patches, heads, and blocks. The emergence of these learned allocation strategies during training
-			supports <b>H3</b>—models adapt computation to signal complexity.<br><br>
-
-			The strategy comparison reveals three distinct learning behaviors. Halting achieves 32% reduction with
-			smooth convergence, while Selection achieves 91.1% reduction through volatile exploration then
-			stabilization,
-			directly supporting <b>H1</b>. Learning speed analysis shows Halting front-loads reduction in the first 2K
-			steps then refines, whereas Selection maintains aggressive reduction through 6K steps. These temporal
-			patterns validate <b>H2</b> and <b>H3</b>: both models learn input-dependent allocation strategies adapted
-			to signal complexity.<br><br>
+			We track the stability of the three adaptive models by recording the variance of FLOPs across training iterations in Figure 3. The adaptive depth (no weight sharing) model (green) displays the lowest and most consistent variance, indicating a stable halting policy that quickly converges to a predictable computation pattern. In contrast, the weight-sharing variant (orange) shows persistently higher variance, reflecting the added difficulty of learning halting behavior when all layers share parameters. The model must balance reuse with flexible depth, leading to noisier adaptation. The adaptive selection model (red) exhibits the highest volatility, especially in the early and mid-training phases, due to its stochastic Gumbel-sigmoid gating, which actively explores sparse configurations before settling into a more stable pattern. Deterministic depth-based halting produces the most stable learning dynamics, while learning sparsity introduces greater variability as the model searches for efficient pruning strategies.
 
 			<div style="text-align: center; margin: 20px 0;">
 				<img src="/blog/images/learning_stability_variance.png" alt="Learning stability and variance analysis"
-					style="max-width: 70%; height: auto;">
-			</div>
+					style="max-width: 60%; height: auto;">
+			</div><br>
+            
 
-			Four-phase breakdown (Warmup 0-2K, Active 2-6K, Refinement 6-10K, Stabilization 10-12.3K) quantifies
-			temporal dynamics. Halting's FLOPs drop steeply in Warmup then plateau with minimal variance, while
-			Selection shows aggressive early reduction followed by high variance during Active Learning as gates explore
-			sparsity patterns. The bottom panels reveal Halting achieves ~32% total reduction with smooth percentage
-			change, while Selection achieves ~59% reduction during training. At test time, Selection's aggressive
-			sparsity
-			yields ~91% reduction (0.25B effective from 2.76B full-depth). Variance analysis (bottom-right) confirms
-			Selection's
-			exploration phase produces higher instability (σ peaks during Active phase) before converging, validating
-			<b>H4</b>: deterministic halting yields stable, interpretable learning curves, while stochastic gating
-			introduces complexity through exploration.<br><br>
+            <hr>
+			<h1>Adaptive Depth Model</h1>
+            Ponder loss is the regularization term used to penalize models that use too many computational steps. We see in Figure 4 that ponder loss steadily decreases for both adaptive depth models as training progresses, indicating that the halting mechanism is learning to use fewer transformer layers on average. Early in training, both models explore deeper computation, resulting in higher ponder penalties as they frequently traverse more layers. The non-weight-sharing model converges to a consistently lower ponder loss, once again reflecting more stable halting behavior, whereas the weight-sharing model maintains a higher and more variable ponder loss due to the shared parameters needing to generalize across multiple depths. This supports the hypothesis that adaptive models successfully learn to reduce computation without being explicitly instructed where to halt.<br><br>
 
-			<hr>
-			<h1>Selection Model Activity</h1>
 			<div style="text-align: center; margin: 20px 0;">
                 <img src="/blog/images/average_ponder_loss.png" alt="Average ponder loss over training"
 					style="max-width: 70%; height: auto;"> <br><br>
-				<img src="/blog/images/selection_model_activity.png" alt="Selection model active patches over training"
-					style="max-width: 70%; height: auto;">
+				<img src="/blog/images/ponder_loss_by_class.png" 
+					style="max-width: 35%; height: auto;">				
 			</div>
+            Interestingly, the normal class shows higher ponder loss on average than the arrhythmia class, which we can see in Figure 5. Since ponder loss depends on how many layers a sample traverses and how the halting mass is accumulated. If a sample distributes its halting probability more gradually across layers, the effective ponder cost increases. In contrast, arrhythmia segments may trigger more decisive halting behavior, explaining the lower average ponder cost, assigning larger halting probabilities at one or two layers, and leading to a lower ponder penalty.  Thus, this supports input-dependent computation <b>H2</b>. The higher ponder loss for normal signals suggests that the model expresses greater uncertainty about when to halt on clean sinus rhythms, while arrhythmic inputs elicit stronger, more confident halting decisions.    
 
-			The Selection model assigns each input patch a learned continuation probability using Gumbel-sigmoid
-			gates, enabling dynamic depth selection. Beginning at roughly 30% activity, the model’s initial sparsity
-			arises from the Gumbel-Softmax temperature and randomly initialized gate weights, which naturally bias
-			computations toward early halting prior to training.During Warmup (0-2K steps), activity drops sharply to
-			~15-20% as gates rapidly discover that
-			aggressive sparsity is viable without accuracy loss. The Active Learning phase (2-6K steps) exhibits high
-			variance in activity levels (ranging 10-25%) as gates explore the accuracy-sparsity trade-off, corresponding
-			to the FLOPs volatility observed earlier. By Stabilization (10-12.3K steps), activity converges to ~14% (86%
-			sparsity), meaning only 1 in 7 patches/heads/blocks remain active on average. This learned sparsity pattern
-			directly validates <b>H2</b>: the model adapts computation on a per-input basis, allocating resources only
-			where needed. The convergence to extreme sparsity while maintaining 99.26% accuracy confirms
-			<b>H1</b>—computational efficiency without performance degradation.<br><br>
+            <hr>
+			<h1>Adaptive Selection Model</h1>
+			The adaptive selection model assigns each input patch a learned continuation probability using Gumbel-sigmoid
+			gates, enabling dynamic depth selection. As shown in Figure 5, the model begins training at roughly 30% activity—a moderately sparse operating point due to the stochasticity of the Gumbel-Softmax distribution. Over the course of training, activity steadily declines and fluctuates between 10–25% as the gating network explores different accuracy–sparsity trade-offs, resulting in characteristic volatility in effective compute usage. Eventually, the model converges near ~14% activity, meaning only about one in seven patches, heads, or blocks remain active on average. This learned pattern of dynamic depth allocation shows that the model adaptively expands or restricts computation on a per-input basis and can still produce 99.26% test accuracy despite extreme sparsity., confirming <b>H1</b> that adaptive gating yields significant computational savings without degrading performance. This also invites future work with light transformer models and their performance on this task.<br><br>
 
 			<div style="text-align: center; margin: 20px 0;">
+				<img src="/blog/images/selection_model_activity.png" alt="Selection model active patches over training"
+					style="max-width: 70%; height: auto;"> <br><br>
 				<img src="/blog/images/low_high_compute_grid.png" alt="Low and high compute examples"
 					style="max-width: 70%; height: auto;">
 			</div>
 
+            In Figure 6, we evaluate the patches of five test segments with the lowest computational cost against the five with the highest, highlighting which temporal patches were retained by the adaptive-selection model. Although the model does not exhibit dramatic differences in the number of patches selected across these extremes, the distribution of classes within each group reveals an important trend. All five of the least-computed samples were normal sinus rhythm, whereas the heavy-compute set contained a mix of normal and abnormal cases (three normal and three arrhythmic).
+
+This suggests that, even though patch-level sparsity appears relatively stable overall, the model still allocates slightly more computation to more complex inputs, including arrhythmias. The fact that some normal samples also require high compute indicates that the model is responding not just to rhythm class, but to broader signal characteristics—such as noise, irregular morphology, or ambiguous local features—that require deeper processing.
+
+Overall, the visualization supports the hypothesis that adaptive computation correlates with input difficulty, even when differences in patch usage are subtle.
+
 		</div>
 		<div class="margin-right-block">
+			<p style="transform: translate(0%, -1500%);">
+				<b>Figure 2.</b> <i>FLOPs per forward pass across training.</i> We record the number of FLOPs for each model at each training step.
+			</p>
 
-			<p style="transform: translate(0%, -300%);">
-				<b>Table 1.</b> <i> Comprehensive model performance metrics.</i> All models are evaluated on the same
-				test
-				set
-				(AFDB, 2-class: normal vs. atrial fibrillation). FLOPs reported as billions of floating-point operations
-				per
-				forward pass. "Avg FLOPs (Test)" reflects actual computation after halting/gating during inference.
-				Parameter counts include all trainable weights. WS = weight sharing. Δ Accuracy shows improvement or
-				degradation relative to the fixed baseline.
+			<p style="transform: translate(0%, -500%);">
+				<b>Figure 3.</b> <i>Variance in FLOPs over training for three adaptive models. </i>Adaptive depth remains the most stable, while weight-sharing increases variance and adaptive selection shows the highest volatility due to stochastic gating.
 			</p>
-			<p style="transform: translate(0%, -200%);">
-				<b>Figure 3.</b> FLOPs per forward pass across training. Fixed (blue) stays flat at 1.92B. Adaptive
-				(No WS, orange) converges to ~1.69B (≈12% reduction) with low variance. Adaptive (WS, magenta)
-				starts higher but settles near ~1.51B while fluctuating more, reflecting the uncertainty from shared
-				weights.
+
+			<p style="transform: translate(0%, -100%);">
+				<b>Figure 4.</b> <i>Average Ponder Loss during training.</i> Shows the decline in ponder loss for both adaptive depth models, indicating learned reduction in computation over time.
 			</p>
-			<p style="transform: translate(0%, 75%);">
-				<b>Figure 4.</b> Learning phases breakdown with vertical dividers at 2K, 6K, 10K steps
-				marking Warmup, Active Learning, Refinement, and Stabilization phases. (Top-left) Halting (WS) model:
-				showing steep Warmup drop then plateau,
-				annotated with phase labels. (Top-right) Selection model: showing aggressive early drop, volatile Active
-				phase (2-6K), then stabilization, annotated with phase
-				labels. (Bottom-left) Percent change from initial FLOPs: smoothed curves for both models showing
-				Halting achieving ~32% reduction gradually, Selection achieving ~59% reduction during training with
-				steeper initial
-				trajectory. (Bottom-right) Variance analysis: rolling 200-step standard deviation for both models
-				across training, revealing Halting's consistently low variance vs. Selection's elevated variance
-				during Active Learning phase (2-6K) before decreasing.
+
+			<p style="transform: translate(0%, 100%);">
+				<b>Figure 5.</b> <i>Per-Class Ponder Loss Distribution</i> Visualizes the distribution of ponder loss values for normal and arrhythmic classes on the test set across models.
+
 			</p>
-			<p style="transform: translate(0%, 225%);">
-				<b>Figure 6.</b> Selection model active parameter fraction across training steps. Starts at ~30%
+
+			
+			<p style="transform: translate(0%, 400%);">
+				<b>Figure 6.</b> <i>Selection model active parameter fraction across training steps. </i>Starts at ~30%
 				activity (70% sparsity) due to Gumbel-Softmax temperature initialization and random gate weights that
-				favor moderate pruning before learning. Drops sharply during Warmup (0-2K) to ~15-20% as gates
-				discover aggressive sparsity is viable. Exhibits high variance (10-25% range) during Active Learning
-				phase (2-6K) as gates explore accuracy-sparsity trade-off. Converges to ~14% activity (86% sparsity,
-				only 1 in 7 components active) by Stabilization phase (10-12.3K), demonstrating learned extreme
+				favor moderate pruning before learning. It then drops sharply, demonstrating learned extreme
 				sparsity while maintaining 99.26% test accuracy.
 			</p>
-
+			
+			<p style="transform: translate(0%, 750%);">
+				<b>Figure 7.</b> <i> Patch-Level Computation Patterns. </i>Patches retained by the model for the lowest- and highest-compute segments. High-compute examples show more irregular or noisy regions, suggesting the model allocates depth based on signal complexity.
+			</p>
+			
 		</div>
 	</div>
 
@@ -720,9 +681,9 @@
 			<h1 class="section-title">Conclusion</h1>
 
 			This work demonstrates that transformer-based ECG models can achieve significant computational
-			efficiency through input-dependent routing mechanisms. Both early-halting and learned-sparsity approaches
-			reduce average model depth without sacrificing diagnostic accuracy—Adaptive-Halting achieves 32% FLOPs
-			reduction while maintaining 99.33% accuracy, while Adaptive-Selection achieves 91.1% reduction at 99.26%
+			efficiency through input-dependent routing mechanisms. Both adaptive depth and learned sparsity approaches
+			reduce average model depth without sacrificing diagnostic accuracy. Adaptive depth without weight sharing achieves 29.9% FLOPs
+			reduction while maintaining 98.93% compared to the fixed model's 98.63% accuracy, while Adaptive-Selection achieves 91.1% reduction at 99.26%
 			accuracy. The observation that models autonomously learn to allocate deeper computation to morphologically
 			complex signals suggests that transformer architectures, when equipped with adaptive depth mechanisms, can
 			learn interpretable hierarchies of feature abstraction: shallow layers extract signal morphology sufficient
