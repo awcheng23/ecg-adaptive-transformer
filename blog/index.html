@@ -612,19 +612,12 @@
 			We trained all four models on the MIT-BIH Atrial Fibrillation Database and evaluated their performance
 			across computational efficiency, accuracy, and model complexity. Our results demonstrate that adaptive
 			computation reduces FLOPs and parameters while maintaining or improving classification accuracy.<br><br>
-			<hr>
+			
 			<h1>Model Performance Comparison</h1>
             <img src="/blog/images/test_performance.png" alt="FLOPs over training iterations"
-					style="max-width: 80%; height: auto;">
+					style="max-width: 80%; height: auto;"><br>
 
-			<h3>Key Observations</h3>
-			<b>Adaptive (No WS):</b> 29.9% FLOPs reduction (1.35B vs 1.92B) with the same parameter budget (855K) and a
-			+0.12% accuracy gain to 98.93% — best efficiency/accuracy trade-off among fixed-parameter models.<br><br>
-			<b>Adaptive (WS):</b> 46% fewer parameters (457K) and 21.4% FLOPs reduction (1.51B), with a small −0.21%
-			accuracy delta (98.60%). Best when memory is tight and modest FLOPs cuts are acceptable.<br><br>
-			<b>Selection (Gating):</b> Full-depth graph is 2.76B FLOPs, but heavy pruning yields 0.25B effective FLOPs
-			(91.1% reduction) and 99.26% accuracy (+0.45%). Not directly comparable to the 1.92B baseline because its
-			full-depth cost is higher; shows sparsity can be extremely compute-efficient.<br><br>
+			From Table 1, we see some efficiency accuracy trade-offs. The adaptive model without weight sharing provides the most balanced improvement. The weight-sharing version, while slightly less accurate, cuts the parameter count nearly in half and still lowers computation. The adaptive selection model behaves differently. Although its full-depth computation is higher, its learned sparsity allows it to operate at a fraction of the cost during inference, achieving the largest efficiency gains overall while also delivering the highest accuracy. Together, these results show that both early-halting and learned-sparsity strategies can meaningfully reduce computational load, with each variant offering a different balance of efficiency, model size, and performance. <br><br>
 
 			<hr>
 			<h1>FLOP Analysis</h1>
