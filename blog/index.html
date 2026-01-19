@@ -322,7 +322,7 @@
 
 			One important physiological time series are electrocardiogram (ECG) signals. ECGs record the electrical
 			activity of the heart over time and are widely used to detect arrhythmias (irregular heartbeats), which can
-			often an be an underlying symptom of more severe heart problems. Detecting arrhythmias such as atrial
+			often can be an underlying symptom of more severe heart problems. Detecting arrhythmias such as atrial
 			fibrillation requires analyzing tens of seconds to hours of ECG data, even though clinically relevant
 			anomalies may occupy only small portions of the signal. In recent
 			years, deep learning models&mdash;particularly convolutional and transformer architectures&mdash;have
@@ -347,9 +347,9 @@
 			investigation into adaptive transformers for ECG anomaly detection.<br><br>
 
 			This project investigates whether adaptive computation transformers can accurately detect arrhythmias in ECG
-			signaals while dynamically allocating computation across the segments Specifically, we examine whether
+			signals while dynamically allocating computation across the segments Specifically, we examine whether
 			adaptive depth and selection models can reduce average computation without sacrificing diagnostic accuracy,
-			the relationship between FLOPs and input class, and the possibility of depth allocation providing insight
+			the relationship between floating-point operations per second (FLOPs) and input class, and the possibility of depth allocation providing insight
 			into local versus global feature usage. By addressing these questions, we aim to provide a framework-level
 			understanding of resource-aware deep learning for ECG classification.
 			<br><br>
@@ -556,7 +556,7 @@
 			<h1>Research Hypotheses</h1>
 
 			<b>H1: Computational Efficiency.</b> Can adaptive models reduce average computational cost without
-			sacrificing classification accuracy for time seres?<br>
+			sacrificing classification accuracy for time series?<br>
 			Since we embed the signal similar to how vision transformers process image tokens, we hypothesize that both adaptive approaches can still achieve comparable test accuracy compared to the fixed baseline,
 			while using fewer FLOPs per sample on average.<br><br>
 
